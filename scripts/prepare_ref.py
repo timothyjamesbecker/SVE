@@ -31,14 +31,19 @@ be done before || per sample or other || means
 can be started in indepencence."""
 parser = argparse.ArgumentParser(description=des)
 group = parser.add_mutually_exclusive_group()
-group.add_argument('-g', '--gen_rnd', action='store_true',help='generate a rgXXX.fa file using -L and -C')
-group.add_argument('-r', '--file', type=str, help='fasta reference file')
-parser.add_argument('-o', '--out_dir', type=str, help='output directory to store resulting files')
-parser.add_argument('-l','--len',type=float, help='random reference total length')
-parser.add_argument('-c','--chr',type=float,help='random reference number of chroms')
-parser.add_argument('-p','--cpus',type=int,help='number of cpus/cores to use')
-parser.add_argument('-d', '--database', type=str, help='database configuration file')
-parser.add_argument('-e','--erase_db',action='store_true',help='wipe the SVEDB')
+group.add_argument('-g', '--gen_rnd', action='store_true',help='generate a rgXXX.fa file using -L and -C\t[False]')
+group.add_argument('-r', '--ref_path', type=str, help='fasta reference file\t[None]')
+target_help = """
+comma sperated list of stage names to filenames (wildcards will work for multiple files)\n
+[EX] -t breakseq:/data/breakseq2_bplib_20150129*\n\t[None]
+"""
+parser.add_argument('-t','--targets',type=str,help=target_help)
+parser.add_argument('-o', '--out_dir', type=str, help='output directory to store resulting files\t[~/refs]')
+parser.add_argument('-l','--len',type=float, help='random reference total length\t[None]')
+parser.add_argument('-c','--chr',type=float,help='random reference number of chroms\t[3]')
+parser.add_argument('-P','--cpus',type=int,help='number of cpus/cores to use\t[1]')
+parser.add_argument('-d', '--database', type=str, help='database configuration file\t[SVE/data/svedb.config]')
+parser.add_argument('-e','--erase_db',action='store_true',help='wipe the SVEDB\t[False]')
 args = parser.parse_args()
 
 result_list = []
@@ -102,8 +107,8 @@ if args.gen_rnd: #validate flag and params
     chr_lens = [len(seqs[k]) for k in seqs]
     stop = time.time()
     print('real cpu time: %s seconds'%(stop-start))
-elif args.file is not None: #using existing ref, now just process
-    ref_fa_path = args.file
+elif args.ref_path is not None: #using existing ref, now just process
+    ref_fa_path,target_map = args.ref_path,{}
     print('using ref_path = '+ref_fa_path)
     out = ''    
     if ref_fa_path[-3:]=='.gz':
@@ -134,6 +139,20 @@ elif args.file is not None: #using existing ref, now just process
                 print('I/O Copy Error')
         else:
             print('ref fasta file already copied into the ref directory, skipping...')
+        if args.target is not None:
+            target_map = {i.split(':')[0]:i.split(':')[1:] for i in args.target.split(',')}
+            print('parsed target map as: %s'%target_map)
+            for target in target_map:
+                for target_file in target_map[target]:
+                    if not os.path.exists(target_file):
+                        new_name = '' #su.stage_meta -> need some stage utils here?
+                        target_copy = []
+                        try:
+                            out = subprocess.check_output(' '.join(target_copy),shell=True)
+                        except Exception as E:
+                            print('I/O copy Error with %s'%target_file)
+                    else:
+                        print('target %s found, skipping...'%target_file)
         ref_fa_path = directory+refbase+'.fa'
     print('reading reference sequence into memory...')
     seqs = sr.read_fasta(ref_fa_path,dictionary=True)     #finally read the fasta with read_utils
@@ -264,7 +283,7 @@ if __name__ == '__main__':
             time.sleep(0.25)
         p2.close()
         p2.join()
-        print('2nd || full ref multi indexing copmleted, results are:')
+        print('2nd || full ref multi indexing completed, results are:')
         print(result_list)
         mult_stop = time.time()
         print('[III] MULTI INDEX SECTION COMPLETED IN %s SEC'%round(mult_stop-mult_start,0))
@@ -272,7 +291,7 @@ if __name__ == '__main__':
         gs_start = time.time()
         #genomestrip index and genome masking
         st = stage.Stage('genome_strip_prepare_ref',dbc)
-        outs = st.run(run_id, {'.fa':[ref_fa_path],'cpus':cpus})
+        outs = st.run(run_id, {'.fa':[ref_fa_path],'cpus':max(1,cpus/2)}) #svmask gets out of hand with memory per cpu
         print(outs)
         gs_stop = time.time()
         print('[IV] GS SVMASK SECTION COMPLETED IN %s SEC'%round(gs_stop-gs_start,0))
