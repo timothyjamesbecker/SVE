@@ -47,7 +47,7 @@ for pindel_path in pindel_paths:
     sname = pindel_path.rsplit('/')[-2]
     file_name = pindel_path.rsplit('/')[-1]
     dir_path = pindel_path.replace(file_name,'')
-    print('GATK filtering sample %s'%sname)
+    print('Pindel filtering sample %s'%sname)
     header,raw = read_pindel_vcf(pindel_path)
     data = filter_by_sv_len(raw,lower,upper)
     write_filtered_vcf(header,data,out_dir+'/'+sname+'_'+str(lower)+'bp_'+str(upper)+'bp')
