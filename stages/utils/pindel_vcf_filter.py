@@ -11,22 +11,18 @@ def read_pindel_vcf(path):
                 header += [line.replace('\n','').split('\t')]
             else:
                 data += [line.replace('\n','').split('\t')]
-    return header,data
+    return header,data   
 
-#filter with a lower and upperbound
 #can clean off the assembly to make a smaller file
 def filter_by_sv_len(raw,lower,upper,clean=True):
     #i = {0:'CHROM',1:'POS',2:'ID',3:'REF',4:'ALT',5:'QUAL',6:'FILTER',7:'INFO',8:'FORMAT',9:'GENOTYPE'}
     data = []
-    for i in range(len(raw)):
-        x = 0
-        try: x = int(raw[i][7].split('SVLEN=')[-1].split(';')[0])
-        except Exception: pass
-        if x>=lower and x <= upper:
-            if clean: data += [raw[i][0:3]+['.','.']+raw[i][5:]]
-            else:     data += [raw[i]]
-    return data    
-
+    x = [1 if abs(len(r[3])-len(r[4]))>=lower and abs(len(r[3])-len(r[4]))<=upper else 0 for r in raw]
+    for i in range(len(x)):
+        if clean: data += [raw[i][0:3]+['.','.']+raw[i][5:]]
+        else:     data += [raw[i]]
+    return data
+    
 def write_filtered_vcf(header,data,path):
     with open(path+'_S36.vcf','w') as f:
         f.write('\n'.join(['\t'.join(row) for row in header]))
