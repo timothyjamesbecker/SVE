@@ -19,8 +19,9 @@ def filter_by_sv_len(raw,lower,upper,clean=True):
     data = []
     x = [1 if abs(len(r[3])-len(r[4]))>=lower and abs(len(r[3])-len(r[4]))<=upper else 0 for r in raw]
     for i in range(len(x)):
-        if clean: data += [raw[i][0:3]+['.','.']+raw[i][5:]]
-        else:     data += [raw[i]]
+        if x[i]>0:
+            if clean: data += [raw[i][0:3]+['.','.']+raw[i][5:]]
+            else:     data += [raw[i]]
     return data
     
 def write_filtered_vcf(header,data,path):
