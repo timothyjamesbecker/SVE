@@ -26,8 +26,8 @@ def filter_by_sv_len(raw,lower,upper,clean=True):
     
 def write_filtered_vcf(header,data,path):
     with open(path+'_S36.vcf','w') as f:
-        f.write('\n'.join(['\t'.join(row) for row in header]))
-        f.write('\n'.join(['\t'.join(row) for row in data]))
+        f.write('\n'.join(['\t'.join(row) for row in header])+'\n')
+        f.write('\n'.join(['\t'.join(row) for row in data])+'\n')
     print('done')
 
 des ='Pindel vcf filtering tool'
