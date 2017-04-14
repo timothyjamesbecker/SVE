@@ -11,26 +11,23 @@ def read_pindel_vcf(path):
                 header += [line.replace('\n','').split('\t')]
             else:
                 data += [line.replace('\n','').split('\t')]
-    return header,data
+    return header,data   
 
-#filter with a lower and upperbound
 #can clean off the assembly to make a smaller file
 def filter_by_sv_len(raw,lower,upper,clean=True):
     #i = {0:'CHROM',1:'POS',2:'ID',3:'REF',4:'ALT',5:'QUAL',6:'FILTER',7:'INFO',8:'FORMAT',9:'GENOTYPE'}
     data = []
-    for i in range(len(raw)):
-        x = 0
-        try: x = int(raw[i][7].split('SVLEN=')[-1].split(';')[0])
-        except Exception: pass
-        if x>=lower and x <= upper:
+    x = [1 if abs(len(r[3])-len(r[4]))>=lower and abs(len(r[3])-len(r[4]))<=upper else 0 for r in raw]
+    for i in range(len(x)):
+        if x[i]>0:
             if clean: data += [raw[i][0:3]+['.','.']+raw[i][5:]]
             else:     data += [raw[i]]
-    return data    
-
+    return data
+    
 def write_filtered_vcf(header,data,path):
     with open(path+'_S36.vcf','w') as f:
-        f.write('\n'.join(['\t'.join(row) for row in header]))
-        f.write('\n'.join(['\t'.join(row) for row in data]))
+        f.write('\n'.join(['\t'.join(row) for row in header])+'\n')
+        f.write('\n'.join(['\t'.join(row) for row in data])+'\n')
     print('done')
 
 des ='Pindel vcf filtering tool'
@@ -50,7 +47,7 @@ for pindel_path in pindel_paths:
     sname = pindel_path.rsplit('/')[-2]
     file_name = pindel_path.rsplit('/')[-1]
     dir_path = pindel_path.replace(file_name,'')
-    print('GATK filtering sample %s'%sname)
+    print('Pindel filtering sample %s'%sname)
     header,raw = read_pindel_vcf(pindel_path)
     data = filter_by_sv_len(raw,lower,upper)
     write_filtered_vcf(header,data,out_dir+'/'+sname+'_'+str(lower)+'bp_'+str(upper)+'bp')
