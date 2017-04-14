@@ -32,7 +32,7 @@ class picard_sam_convert(stage_wrapper.Stage_Wrapper):
         #[2a]build command args
         rg = '.'.join(in_name['.sam'].rsplit('/')[-1].rsplit('.')[0:-1])+'_RG'#may need to do addreplacerg
         software = self.software_path
-        java   = software+'jre1.8.0_51/bin/java'
+        java   = software+'/jre1.8.0_51/bin/java'
         mem    = '-Xmx32g'
         picard = software+'picard-tools-2.5.0/picard.jar'
         sort   =  [java,mem,'-jar',picard,'SortSam','I=',in_name['.sam'],

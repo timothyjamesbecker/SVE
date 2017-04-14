@@ -24,21 +24,21 @@ des = """
 Processes Illumina PE .fq reads into a .bam file given a reference .fa file as input.
 [Note] mem, piped_mem, piped_split sub-pipelines assume reads > 75bp in length"""
 parser = argparse.ArgumentParser(description=des)
-parser.add_argument('-a','--algorithm', type=str, help='aln|mem|piped_mem|piped_split|speed_seq\t[piped_split]')
+parser.add_argument('-a', '--algorithm', type=str, help='aln|mem|piped_mem|piped_split|speed_seq\t[piped_split]')
 parser.add_argument('-g', '--replace_rg',action='store_true', help='replace reads groups\t[False]')
 parser.add_argument('-m', '--mark_duplicates',action='store_true', help='mark duplicate reads\t[False]')
 parser.add_argument('-s', '--sample',type=str, help='sample name\t[input]')
 parser.add_argument('-o', '--out_dir', type=str, help='output directory to store resulting files\t[None]')
 parser.add_argument('-r', '--ref', type=str, help='fasta reference file path\t[None]')
-parser.add_argument('-d','--database',type=str, help='database configuration file\t[SVE/data]')
+parser.add_argument('-d', '--database',type=str, help='database configuration file\t[SVE/data]')
 fqs_help = """
 fq comma-sep file path list\t[None]
 [EX PE] --fqs ~/data/sample1_FWD.fq,~/data/sample1_REV.fq"""
 parser.add_argument('-f', '--fqs',type=str, help=fqs_help)
 parser.add_argument('-b', '--bam',type=str, help='bam file path\t[None]')
-parser.add_argument('-P','--cpus',type=int, help='number of cpus for alignment and sorting, ect\t[1]')
-parser.add_argument('-T','--threads',type=int, help='number of threads per CPU\t[4]')
-parser.add_argument('-M','--mem',type=int, help='ram in GB units to use for processing per cpu/thread unit\t[4]')
+parser.add_argument('-P', '--cpus',type=int, help='number of cpus for alignment and sorting, ect\t[1]')
+parser.add_argument('-T', '--threads',type=int, help='number of threads per CPU\t[4]')
+parser.add_argument('-M', '--mem',type=int, help='ram in GB units to use for processing per cpu/thread unit\t[4]')
 args = parser.parse_args()
 
 #read the database configuration file
