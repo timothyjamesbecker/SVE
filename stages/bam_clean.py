@@ -98,7 +98,7 @@ class bam_clean(stage_wrapper.Stage_Wrapper):
         #[3b]check results--------------------------------------------------
         if err == {}:
             self.db_stop(run_id,{'output':output},'',True)
-            results = [out_name+'.bam']
+            results = [out_name['.clean.bam']+'.bam']
             #for i in results: print i
             if all([os.path.exists(r) for r in results]):
                 print("sucessfull........")
@@ -108,4 +108,4 @@ class bam_clean(stage_wrapper.Stage_Wrapper):
                 return False
         else:
             self.db_stop(run_id,{'output':output},err['message'],False)
-            return None
+            return False

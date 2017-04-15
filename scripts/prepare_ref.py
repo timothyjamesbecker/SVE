@@ -37,7 +37,7 @@ target_help = """
 comma sperated list of stage names to filenames (wildcards will work for multiple files)\n
 [EX] -t breakseq:/data/breakseq2_bplib_20150129*\n\t[None]
 """
-parser.add_argument('-t','--targets',type=str,help=target_help)
+parser.add_argument('-t','--target',type=str,help=target_help)
 parser.add_argument('-o', '--out_dir', type=str, help='output directory to store resulting files\t[~/refs]')
 parser.add_argument('-l','--len',type=float, help='random reference total length\t[None]')
 parser.add_argument('-c','--chr',type=float,help='random reference number of chroms\t[3]')
@@ -77,9 +77,12 @@ def multi_index(ref_fa_path, multi, run_id, dbc):
     out = st.run(run_id, {'.fa':[ref_fa_path]})
     return out
     
-directory = path('~/refs')    #users base home folder as default plus refs folder
 if args.out_dir is not None:  #optional reroute
     directory = args.out_dir
+elif args.ref_path is not None:
+    directory = '/'.join(args.ref_path.rsplit('/')[:-1])+'/'+\
+                         args.ref_path.rsplit('/')[-1].rsplit('.')[0]+'/'
+    print('building reference directory at location: %s'%directory)
 if not os.path.exists(directory): os.makedirs(directory)
 if args.gen_rnd: #validate flag and params
     #do the random generation with length and chrom number params

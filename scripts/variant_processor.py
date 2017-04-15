@@ -259,7 +259,7 @@ with svedb.SVEDB(dbc['srv'], dbc['db'], dbc['uid'], dbc['pwd']) as dbo:
                 #print the .valid file for debugging-------
                 print('-------------valid file output-----------------')
                 with open(valid) as f: print(f.readlines())
-                outs += st.run(run_id,{'.header':[header],'.valid':[valid],
+                outs = st.run(run_id,{'.header':[header],'.valid':[valid],
                                        '.bam':bams,'out_dir':[directory]})
                 #:::TO DO::: check on last time for validation...
         if verbose: print(outs)
@@ -360,7 +360,8 @@ with svedb.SVEDB(dbc['srv'], dbc['db'], dbc['uid'], dbc['pwd']) as dbo:
         cnvnator_params['window']['value'] = ru.expected_window(depth=RD,length=RL,target=100)
         st.set_params(cnvnator_params)
         outs = st.run(run_id, {'.fa':[ref_fa_path],'.bam':bams,'out_dir':[directory]})
-        if verbose: print(outs)
+        if len(outs)<int(1E3):
+            if verbose: print(outs)
     
     if staging.has_key('genome_strip'):
         #genomestrip
