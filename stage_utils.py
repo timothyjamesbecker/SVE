@@ -54,3 +54,36 @@ def get_common_string_left(L):
         S = L[0][0:j]
     if len(L)==1: S = L
     return S
+
+#parses the target string, checks that the files exist and maps each file
+#to the opropriate stage_id converted file that the SVE will use internally
+#usually this will involve copying and renaming files into a ref directory
+#sids = su.get_stage_name_id(stage_meta)
+def get_target_map(target_str):
+    T,sids = {},get_stage_name_id(get_stage_meta())
+    targets = target_str.split(';')
+    for t in targets:
+        k,s,R = t.split(':')[0],t.split(':')[1].split(','),[]
+        for i in s:
+            R += glob.glob(i)
+        if k in sids: T[sids[k]] = R
+    #check each file for existance
+    return T
+    
+#given a full reference_path to a SVE reference directory
+#and a set of stage
+def map_stage_names_targets(target_str,ref_fa_path):
+    copy_map = {}
+    refbase = ref_fa_path.rsplit('/')[-1].replace('.fasta','').replace('.fa','')
+    ref_dir = '/'.join(ref_fa_path.rsplit('/')[:-1])+'/'
+    T = get_target_map(target_str)
+    #new_path = '/'.join(ref_fa_path.rsplit('/')[0:-1])+'/'+refbase+sids['breakseq']
+    for t in T:
+        for i in range(len(T[t])):
+            file_ext = '.'+'.'.join(T[t][i].rsplit('/')[-1].rsplit('.')[1:])
+            copy_map[T[t][i]] = ref_dir+refbase+t+file_ext
+    return True
+    
+    
+    
+    

@@ -16,6 +16,7 @@ import hashlib
 relink = os.path.dirname(os.path.abspath(__file__))+'/../'
 sys.path.append(relink) #go up one in the modules
 import read_utils as sr
+import stage_utils as su
 import generate_variants as gv
 import svedb
 import stage
@@ -34,10 +35,11 @@ group = parser.add_mutually_exclusive_group()
 group.add_argument('-g', '--gen_rnd', action='store_true',help='generate a rgXXX.fa file using -L and -C\t[False]')
 group.add_argument('-r', '--ref_path', type=str, help='fasta reference file\t[None]')
 target_help = """
-comma sperated list of stage names to filenames (wildcards will work for multiple files)\n
+comma sperated list of stage names to filenames (wildcards will work for multiple files)
+note: this is a nessesary step for use with breakseq2 and some other callers that rely on specific libraries/files.
 [EX] -t breakseq:/data/breakseq2_bplib_20150129*\n\t[None]
 """
-parser.add_argument('-t','--targets',type=str,help=target_help)
+parser.add_argument('-t','--target',type=str,help=target_help)
 parser.add_argument('-o', '--out_dir', type=str, help='output directory to store resulting files\t[~/refs]')
 parser.add_argument('-l','--len',type=float, help='random reference total length\t[None]')
 parser.add_argument('-c','--chr',type=float,help='random reference number of chroms\t[3]')
@@ -77,9 +79,12 @@ def multi_index(ref_fa_path, multi, run_id, dbc):
     out = st.run(run_id, {'.fa':[ref_fa_path]})
     return out
     
-directory = path('~/refs')    #users base home folder as default plus refs folder
 if args.out_dir is not None:  #optional reroute
     directory = args.out_dir
+elif args.ref_path is not None:
+    directory = '/'.join(args.ref_path.rsplit('/')[:-1])+'/'+\
+                         args.ref_path.rsplit('/')[-1].rsplit('.')[0]+'/'
+    print('building reference directory at location: %s'%directory)
 if not os.path.exists(directory): os.makedirs(directory)
 if args.gen_rnd: #validate flag and params
     #do the random generation with length and chrom number params

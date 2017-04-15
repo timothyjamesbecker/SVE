@@ -24,7 +24,7 @@ class breakseq(stage_wrapper.Stage_Wrapper):
         #workflow is to run through the stage correctly and then check for error handles
         #[1a]get input names and output names setup
         in_names = {'.fa':inputs['.fa'][0], 
-                    '.gff':inputs['.gff'][0], #base gff and brkpt lib files here
+                    '.fna':inputs['.fna'][0], #base gff and brkpt lib files here
                     '.bam':inputs['.bam']}
         #will have to figure out output file name handling
         out_exts = self.split_out_exts()
@@ -51,7 +51,7 @@ class breakseq(stage_wrapper.Stage_Wrapper):
         w = str(self.get_params()['window']['value']) 
         j = str(self.get_params()['junction']['value'])
         call      = [python,breakseq,'--bwa',bwa,'--samtools',samtools,
-                     '--reference',in_names['.fa'],'--bplib_gff',in_names['.gff'],
+                     '--reference',in_names['.fa'],'--bplib',in_names['.fna'],
                      '--work',sub_dir,'--bams']+in_names['.bam']+\
                     ['--nthreads',str(4),'--min_span',str(2),'--window',max(100,w),
                      '--min_overlap',str(2),'--junction_length',max(200,j)] #junctio =2x lead length
