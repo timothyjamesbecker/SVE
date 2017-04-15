@@ -65,11 +65,35 @@ docker usage requires docker toolbox or other docker engine be installed, otherw
 ```bash
 docker pull timothyjamesbecker/sve
 ```
+##Autonomous Mode
+Several steps are required in order to prepare reference files, indecies, libraries, ancillary files in addition to then aligning FASTQ files to the reference coordinate space followed by running multiple SV calling pipelines and then runing FusorSV merging of the results.  This style of use makes several assumptions and provide a very easy to use analysis that will provide several SV callers worth of data for a FusorSV mergig step that will incorporate a prior fusion model. It is assumed that the docker image is used in this case as many binaires have to be installed and checked for the automous system to run.
+```bash
+docker run -v ~/data:/data -it timothyjamesbecker/sve /software/SVE/scripts/auto.py\
+-r /data/ref/human_g1k_v37_decoy.fa\
+-f -f /data/sample1/sample1_1.fq,/data/sample1/sample1_2.fq\
+-o /data/run_sample1/
+```
+##Advanced Mode
+The advanced use has each step as a seperate script as used by auto.py but has many more options for tuning perfromance and setting directories.  These steps are a good starting place for adapting the SVE to a specific platform like a HPC system or a cloud service, ect.
+
+####(0) Preparing Reference files from a single fasta input
+A one time step is required that will be skipped for all future runs that indexes and copies/renames all needed inputs files for all the individual pipelines and processes used by the SVE.  These files are checked in the autonomous mode and not regenerated.
+```bash
+docker run -v ~/data:/data timothyjamesbecker/sve /software/SVE/scripts/prepare_ref.py\
+-r /data/human_g1k_v37_decoy.fa\
+-t breakseq:/data/breakseq2*.fna\
+-o /data/ref/\
+-P 4
+```
+-r is the fasta reference file that will be processed into the output directory (reference directory in SVE terms)
+-o output directory (will become the reference directory) where the fasta files, indecies, libraries and anything related to the reference will be located for SVE use.
+-t is a target file mapping parameter that will automatically copy a caller specific reference file into the new reference directory. You can use wild cards and mappmultiple files to a caller.  You must use the SVE caller names for this to work.  As default the current default genome is already in place and will provide proper functionaly.
+
 ####(1) Alignment of FASTQ and generation of BAM files
 The first step is to align FASTQ paired end reads to a reference genome.  The 1000 Genomes phase 3 reference fasta is currently sugested and tested against: http://ftp.1000genomes.ebi.ac.uk/vol1/ftp/technical/reference/human_g1k_v37.fasta.gz  (Hg38 and mm10 are planned)
 ```bash
-docker run -v /data:/data timothyjamesbecker/sve /software/SVE/scripts/prepare_bam.py\
--r /data/human_g1k_v37_decoy/human_g1k_v37_decoy.fa\
+docker run -v ~/data:/data timothyjamesbecker/sve /software/SVE/scripts/prepare_bam.py\
+-r /data/ref/human_g1k_v37_decoy.fa\
 -f /data/sample1/sample1_1.fq,/data/sample1/sample1_2.fq\
 -o /data/bams/\
 -P 4\
@@ -88,8 +112,8 @@ docker run -v /data:/data timothyjamesbecker/sve /software/SVE/scripts/prepare_b
 
 ####(2) Structural Variation Calling on Bam files and generation of VCF files
 ```bash
-docker run -v /data:/data timothyjamesbecker/sve /software/SVE/scripts/variant_processor.py\
--r /data/human_g1k_v37_decoy/human_g1k_v37_decoy.fa\
+docker run -v ~/data:/data timothyjamesbecker/sve /software/SVE/scripts/variant_processor.py\
+-r /data/ref/human_g1k_v37_decoy.fa\
 -b /data/bams/sample1.bam\
 -o /data/vcfs/\
 -s breakdancer,gatk_haplo,delly,lumpy,cnvnator
@@ -156,12 +180,12 @@ If -D or -L are left out, the bam_stats information gathering stage with determi
 
 ####(3) Merging Structural Variation Call Sets (Using a default fusion model with FusorSV)
 ```bash
-docker run -v /data:/data timothyjamesbecker/sve /software/FusorSV/FusorSV.py\
--r /data/human_g1k_v37_decoy/human_g1k_v37_decoy.fa\
+docker run -v ~/data:/data timothyjamesbecker/sve /software/FusorSV/FusorSV.py\
+-r /data/ref/human_g1k_v37_decoy.fa\
 -c 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,X,Y\
 -i /data/vcfs/\
 -o /data/fused/\
--f /software/FusorSV/data/models/human_g1k_v37_decoy.current.pickle\
+-f /software/FusorSV/data/models/human_g1k_v37_decoy.P3.pickle\
 -p 4\
 -M 0.5\
 -L
@@ -213,4 +237,3 @@ ls /data/vcfs/*/*
 -p or --cpus sets the number of processor cores that will be used.  This will increase the amount of RAM but will speed up the processing by p as all major parts of the FusorSV processing are out-of-core and optimally || due to complete independance in the data stream by partitions.<br><br>
 -M or cluster_overlap sets the amount of overlap permitted in the resulting VCF file for all samples attached to the -i argument.  This currently uses a (non-optimal) reciprocal overlap scanning proceedure to join together toaching calls, where the final resulting breakpoints with be averaged across all calls.  Individual VCF files will still remain, but this single master file will provide approximated genotype information with the support f every caller and the expectation under the fusion model giving you a clear an concise file to move forward with the biological relavence of the high-accuracy FusorSV calls.<br>
 -L or --lift_over argument is used to pass a valid chain file to the FusorSV machinery to apply crossmap lift over<br>
-
