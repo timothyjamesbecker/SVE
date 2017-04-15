@@ -140,7 +140,7 @@ else:
 if args.target is not None:
     target_str = args.target #target mapping string, need to parse it
 else:
-    target_str = 'breakseq:/software'
+    target_str = 'breakseq:'+os.path.dirname(os.path.abspath(__file__))+'../data/breakseq2*.fna'
 if args.cpus is not None:
     cpus = int(args.cpus)
 else:
@@ -169,8 +169,7 @@ for f in ['.fa','.dict','.amb','.ann','.bwt','.pac','.sa','.svmask.fasta']:
     if len(seqs.difference(g))>0:
         ref_prep = False
 #check for the target_str now
-target_map = su.get_target_map(target_str)
-
+target_name_map = su.map_stage_names_targets(target_str,ref_fa_path)
 """
 #[3] if not run prepare_ref.py (easiest way to include breakseq bp-lib is a target map that is input)
 r_start = time.time()
