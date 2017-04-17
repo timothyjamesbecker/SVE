@@ -167,10 +167,20 @@ for f in ['.fa','.dict','.amb','.ann','.bwt','.pac','.sa','.svmask.fasta']:
     g = set([g.rsplit('/')[-1].replace(f,'').replace('.fa','').rsplit('_S15_')[-1] for g in \
              glob.glob('/'.join((ref_fa_path.rsplit('/')[:-1]))+'/*'+f)])
     if len(seqs.difference(g))>0:
+        print('reference files did not match the expectation!\n%s'%seqs.difference(g))
         ref_prep = False
 #check for the target_str now
+output = ''
 target_name_map = su.map_stage_names_targets(target_str,ref_fa_path)
-"""
+for t in target_name_map:
+    if not os.path.exists(target_name_map[t]):
+        try:
+            file_copy = ['cp',t,target_name_map[t]]
+            output += subprocess.check_output(' '.join(file_copy),shell=True)
+        except Exception as E:
+                print(E)
+                ref_prep = False
+
 #[3] if not run prepare_ref.py (easiest way to include breakseq bp-lib is a target map that is input)
 r_start = time.time()
 if ref_prep: #ref_directory is the ref_path inside a valid ref_folder
@@ -225,15 +235,30 @@ else:
 v_start = time.time()
 output = ''
 vcf_directory = directory+'/vcf/'
+if not os.path.exists(vcf_directory): os.mkdir(vcf_directory)
+vcf_sample = vcf_directory+'/%s/'%SM
 print('starting variant calling')
 variant_processor = [scripts_path+'variant_processor.py','-r',ref_fa_path,'-b',bam_path,
-                     '-o',vcf_directory,'-s','breakdancer,breakseq,cnmops,cnvnator,delly,hydra,lumpy']
+                     '-o',vcf_sample,'-s','breakdancer,breakseq,cnmops,cnvnator,delly,hydra,lumpy']
 try:
     output += subprocess.check_output(' '.join(variant_processor),shell=True)
 except Exception as E:
     print(E)
 print(output)
 v_stop  = time.time()
+
+#(D) Run FusorSV to merge the results
+output = ''
+print('starting FusorSV processing with a prior model')
+fusorsv_out = directory+'/fusorsv_out/'
+fusor_sv = [scripts_path+'../../FusorSV/FusorSV.py','-r',ref_fa_path,'-i',vcf_directory,
+            '-f','../../FusorSV/data/models/human_g1k_v37_decoy.P3.pickle',
+            '-o',fusorsv_out,'-p',str(cpus),'-M',str(0.5),'-L','DEFAULT']
+try :
+    output += subprocess.check_output(' '.join(fusor_sv),shell=True)
+except Exception as E:
+    print(E)
+print(output)
 
 #(D) check the number of VCF files and total SV calls per caller
 #[1] check FusorSV file folder structure
@@ -242,7 +267,7 @@ v_stop  = time.time()
 #[4] check the model to see if it is in a valid ref space
 #[5] run the FusorSV analysis
 #[6] optional cross_map coordinates and gene_finding tools
-"""
+
 
 
     

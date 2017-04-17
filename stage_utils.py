@@ -63,9 +63,12 @@ def get_target_map(target_str):
     T,sids = {},get_stage_name_id(get_stage_meta())
     targets = target_str.split(';')
     for t in targets:
-        k,s,R = t.split(':')[0],t.split(':')[1].split(','),[]
+        k,s,R,S = t.split(':')[0],t.split(':')[1].split(','),[],[]
         for i in s:
             R += glob.glob(i)
+        for r in R:
+            if os.path.exists(r): S += [r]
+            else: print('%s was not located, please check your path!'%r)
         if k in sids: T[sids[k]] = R
     #check each file for existance
     return T
@@ -82,7 +85,7 @@ def map_stage_names_targets(target_str,ref_fa_path):
         for i in range(len(T[t])):
             file_ext = '.'+'.'.join(T[t][i].rsplit('/')[-1].rsplit('.')[1:])
             copy_map[T[t][i]] = ref_dir+refbase+t+file_ext
-    return True
+    return copy_map
     
     
     

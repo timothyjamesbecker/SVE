@@ -113,7 +113,7 @@ if args.gen_rnd: #validate flag and params
     stop = time.time()
     print('real cpu time: %s seconds'%(stop-start))
 elif args.ref_path is not None: #using existing ref, now just process
-    ref_fa_path,target_map = args.ref_path,{}
+    ref_fa_path,target_str = args.ref_path,''
     print('using ref_path = '+ref_fa_path)
     out = ''    
     if ref_fa_path[-3:]=='.gz':
