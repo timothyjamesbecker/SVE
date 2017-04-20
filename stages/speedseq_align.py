@@ -55,7 +55,7 @@ class speedseq_align(stage_wrapper.Stage_Wrapper):
         #'@RG\tID:H7AGF.2\tLB:Solexa-206008\tPL:illumina\tPU:H7AGFADXX131213.2\tSM:HG00096\tCN:BI'
         RG = r'\t'.join(["'@RG",'ID:'+sample,'LB:'+'Solexa'+sample,'PL:'+inputs['platform_id'][0],
                          'PU:'+sample,'SM:'+SM+"'"])
-        align = [speedseq,'align','-t',threads,'-R',RG,'-M',mem,
+        align = [speedseq,'align','-t',threads,'-R',RG,'-M',mem,'-T',out_dir+'/sort_',
                  '-o',out_name,in_names['.fa']]+in_names['.fq'] #out_name: speedseq -o is prefix (without.bam)
         #[2b]make start entry which is a new staged_run row
         #[1a]make start entry which is a new staged_run row  

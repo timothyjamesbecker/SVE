@@ -56,6 +56,7 @@ parser.add_argument('-P', '--cpus',type=str, help='number of cpus for alignment 
 parser.add_argument('-T', '--threads',type=str, help='number of threads per CPU\t[4]')
 parser.add_argument('-M', '--mem',type=str, help='ram in GB units to use for processing per cpu/thread unit\t[4]')
 parser.add_argument('-a', '--algorithm',type=str, help='alignment/realignment algorithm pipeline\t[speed_seq]')
+parser.add_argument('-R', '--test_run',type=str, help='generates paired end FASTQ files and tests instalation\t[place holder]')
 args = parser.parse_args()
 
 #read the database configuration file
@@ -140,19 +141,19 @@ else:
 if args.target is not None:
     target_str = args.target #target mapping string, need to parse it
 else:
-    target_str = 'breakseq:'+os.path.dirname(os.path.abspath(__file__))+'../data/breakseq2*.fna'
+    target_str = 'breakseq:'+os.path.dirname(os.path.abspath(__file__))+'/../data/breakseq2*.fna'
 if args.cpus is not None:
     cpus = int(args.cpus)
 else:
-    cpus = 1
+    cpus = 4
 if args.threads is not None:
     threads = args.threads
 else:
-    threads = 4
+    threads = 6
 if args.mem is not None:
     mem = int(args.mem)
 else:
-    mem = 4
+    mem = 12
 if args.algorithm is not None:
     algorithm = args.algorithm
 else:
@@ -172,6 +173,7 @@ for f in ['.fa','.dict','.amb','.ann','.bwt','.pac','.sa','.svmask.fasta']:
 #check for the target_str now
 output = ''
 target_name_map = su.map_stage_names_targets(target_str,ref_fa_path)
+print('reference target file mapping: %s\n'%target_name_map)
 for t in target_name_map:
     if not os.path.exists(target_name_map[t]):
         try:
@@ -186,7 +188,6 @@ r_start = time.time()
 if ref_prep: #ref_directory is the ref_path inside a valid ref_folder
     ref_directory = '/'.join(ref_fa_path.rsplit('/')[:-1])+'/'
     print('reference has already been prepared, skipping...')
-
 else:
     output = ''
     ref_directory = '/'.join(ref_fa_path.rsplit('/')[:-1])+'/'+\
@@ -239,7 +240,8 @@ if not os.path.exists(vcf_directory): os.mkdir(vcf_directory)
 vcf_sample = vcf_directory+'/%s/'%SM
 print('starting variant calling')
 variant_processor = [scripts_path+'variant_processor.py','-r',ref_fa_path,'-b',bam_path,
-                     '-o',vcf_sample,'-s','breakdancer,breakseq,cnmops,cnvnator,delly,hydra,lumpy']
+                     '-o',vcf_sample,'-s',
+                     'breakdancer,breakseq,cnmops,cnvnator,delly,hydra,lumpy,genome_strip,gatk_haplo']
 try:
     output += subprocess.check_output(' '.join(variant_processor),shell=True)
 except Exception as E:
@@ -251,8 +253,10 @@ v_stop  = time.time()
 output = ''
 print('starting FusorSV processing with a prior model')
 fusorsv_out = directory+'/fusorsv_out/'
-fusor_sv = [scripts_path+'../../FusorSV/FusorSV.py','-r',ref_fa_path,'-i',vcf_directory,
-            '-f','../../FusorSV/data/models/human_g1k_v37_decoy.P3.pickle',
+
+fusor_sv = [scripts_path+'../../FusorSV/FusorSV.py',
+            '-r',ref_fa_path,'-i',vcf_directory,
+            '-f',scripts_path+'../../FusorSV/data/models/human_g1k_v37_decoy.P3.pickle',
             '-o',fusorsv_out,'-p',str(cpus),'-M',str(0.5),'-L','DEFAULT']
 try :
     output += subprocess.check_output(' '.join(fusor_sv),shell=True)
@@ -270,5 +274,4 @@ print(output)
 
 
 
-    
-     
+  
