@@ -138,7 +138,7 @@ if args.sample is not None:
 else:
     print('SM parameter not specified, stripping off . and _ char with the extension on read 1')
     if len(reads)>0:
-        SM = reads[0].rsplit('/')[-1].rsplit('.')[0].rsplit('_')[0][:-1]
+        SM = reads[0].rsplit('/')[-1].rsplit('.')[0].rsplit('_')[0]
         print('using SM = %s'%SM)
     else:
         print('read 1 and read 2 were not found!')
