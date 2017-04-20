@@ -43,7 +43,7 @@ fq comma-sep file path list\t[None]
 [EX PE] --fqs ~/data/sample1_FWD.fq,~/data/sample1_REV.fq"""
 parser.add_argument('-f', '--fqs',type=str, help=fqs_help)
 parser.add_argument('-b', '--bam',type=str, help='BAM format file for use without alignment or for realignmnet\t[None]')
-parser.add_argument('-s', '--sample',type=str, help='Sample identifier\t[infered from BAM|fastq names trimmed by . and -]')
+parser.add_argument('-s', '--sample',type=str, help='Sample identifier\t[infered from BAM|fastq read 1 trimmed by . and _]')
 target_help = """
 maps a stage name to a comma seperated list of filenames with a colon : (wildcards will work for multiple files)
 multiple mappings are sperated by a semi colon ; This is a nessesary step when using breakseq2 and some other callers 
@@ -116,10 +116,11 @@ refbase = ref_fa_path.rsplit('/')[-1].split('.fa')[0]
 if args.fqs is not None and all([os.path.exists(f) for f in args.fqs.split(',')]):
     reads = args.fqs.split(',') #CSL returns a list of 1+    
 else:
-    print('no fqs pattern found: arg=%s'%args.fqs)
+    print('no valid fqs pattern found: arg=%s'%args.fqs)
+    print('fastq files should be comma seperated and end with 1.fq for read 1 or 2.f2 for read2')
     reads = []
 if not all([os.path.exists(r) for r in reads]):
-    print('fastq files not found!')
+    print('fastq files do not exist at the path specified!')
 if args.bam is not None and os.path.exists(args.bam):
     bam = args.bam
 else:
@@ -135,9 +136,13 @@ if args.sample is not None:
     SM = args.sample
     print('using SM = %s'%SM)
 else:
+    print('SM parameter not specified, stripping off . and _ char with the extension on read 1')
     if len(reads)>0:
-        SM = reads[0].rsplit('/')[-1].rsplit('-')[0].rsplit('.')[0][:-1]
+        SM = reads[0].rsplit('/')[-1].rsplit('.')[0].rsplit('_')[0][:-1]
         print('using SM = %s'%SM)
+    else:
+        print('read 1 and read 2 were not found!')
+        raise IOError
 if args.target is not None:
     target_str = args.target #target mapping string, need to parse it
 else:
@@ -221,12 +226,13 @@ if len(reads)>0 and len(glob.glob(directory+'/bam/*%s*.bam'%SM))<1:
         bam_path = glob.glob(bam_directory+'%s.bam'%SM)[0]
     except Exception as E:
         print(E)
+        raise IOError
     print(output)
 else:
     print('bam files were found, skipping alignment step')
     bam_path = glob.glob(directory+'/bam/*%s*.bam'%SM)[0]
 b_stop = time.time()
-if os.path.exists(ref_fa_path):
+if os.path.exists(bam_path):
     print('prepare_bam has completed in %s minutes'%round((b_stop-b_start)/60.0,2))
 else:
     print('prepare_bam failure shuting down execution!')
@@ -246,6 +252,7 @@ try:
     output += subprocess.check_output(' '.join(variant_processor),shell=True)
 except Exception as E:
     print(E)
+    raise IOError
 print(output)
 v_stop  = time.time()
 
@@ -262,6 +269,7 @@ try :
     output += subprocess.check_output(' '.join(fusor_sv),shell=True)
 except Exception as E:
     print(E)
+    raise IOError
 print(output)
 
 #(D) check the number of VCF files and total SV calls per caller
@@ -271,7 +279,3 @@ print(output)
 #[4] check the model to see if it is in a valid ref space
 #[5] run the FusorSV analysis
 #[6] optional cross_map coordinates and gene_finding tools
-
-
-
-  
