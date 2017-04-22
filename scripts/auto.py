@@ -223,7 +223,7 @@ if len(reads)>0 and len(glob.glob(directory+'/bam/*%s*.bam'%SM))<1:
                    '-P',str(cpus),'-T',str(threads),'-M',str(mem),'-a',algorithm]
     try:
         output += subprocess.check_output(' '.join(prepare_bam),shell=True)
-        bam_path = glob.glob(bam_directory+'%s.bam'%SM)[0]
+        bam_path = glob.glob(bam_directory+'%s*.bam'%SM)[0] #more permissive
     except Exception as E:
         print(E)
         raise IOError
