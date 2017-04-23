@@ -223,14 +223,14 @@ if len(reads)>0 and len(glob.glob(directory+'/bam/*%s*.bam'%SM))<1:
                    '-P',str(cpus),'-T',str(threads),'-M',str(mem),'-a',algorithm]
     try:
         output += subprocess.check_output(' '.join(prepare_bam),shell=True)
-        bam_path = glob.glob(bam_directory+'%s*.bam'%SM)[0] #more permissive
+        bam_path = sorted(glob.glob(bam_directory+'%s*.bam'%SM),key=lambda x: len(x))[0] #more permissive
     except Exception as E:
         print(E)
         raise IOError
     print(output)
 else:
     print('bam files were found, skipping alignment step')
-    bam_path = glob.glob(directory+'/bam/*%s*.bam'%SM)[0]
+    sorted(glob.glob(bam_directory+'%s*.bam'%SM),key=lambda x: len(x))[0]
 b_stop = time.time()
 if os.path.exists(bam_path):
     print('prepare_bam has completed in %s minutes'%round((b_stop-b_start)/60.0,2))
