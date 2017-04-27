@@ -71,6 +71,7 @@ class speedseq_align(stage_wrapper.Stage_Wrapper):
             output += subprocess.check_output(' '.join(align),
                                               stderr=subprocess.STDOUT,
                                               executable='/bin/bash',
+                                              env={'SHELL':'/bin/bash'},
                                               shell=True) #clean up the inputs now
         #catch all errors that arise under normal call behavior
         except subprocess.CalledProcessError as E:

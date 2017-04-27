@@ -19,6 +19,16 @@ class bam_stats(stage_wrapper.Stage_Wrapper):
     def __exit__(self, type, value, traceback):
         return 0  
     
+    #pull data from the samtools [flag]stats
+    def get_summary_value(self,summary,row,defaut=0):
+        v = default #default
+        try:
+            v = int(s.rsplit(row+':')[-1].split('\n')[0].strip(' '))
+        except Exception as E:
+            print(E)
+            pass
+        return v
+        
     def summary_as_list(self,summary):
         out = []
         lines = summary.split('\n')
@@ -84,8 +94,11 @@ class bam_stats(stage_wrapper.Stage_Wrapper):
         picardtools = self.software_path+'/picard-tools-2.5.0/picard.jar'
         samtools    = self.software_path+'/samtools-1.3/samtools'
         phred       = self.software_path+'/SVE/stages/utils/phred_encoding.py'
-        valid       = [java,'-Xmx4g','-jar',picardtools,'ValidateSamFile',
-                       'MODE=SUMMARY','I=%s'%in_names['.bam'],'O=%s'%out_name+'.valid']
+        valid       = [java,'-Xmx8g','-jar',picardtools,'ValidateSamFile','MODE=SUMMARY',
+                       'IGNORE=MATE_CIGAR_STRING_INVALID_PRESENCE','IGNORE_WARNINGS=true',
+                       #change this to randomly sample from the input
+                       #'I=/dev/stdin','O=%s'%out_name+'.valid'
+                       'I=%s'%in_names['.bam'],'O=%s'%out_name+'.valid']
         summary     = [samtools,'stats',in_names['.bam'],'| grep ^SN | cut -f 2-']
         header      = [samtools, 'view', '-SH', in_names['.bam']]
         #samtools view -Sh old.bam | SVE/stages/utils/phred_encoding.py 1E6 ./old.valid        
@@ -127,16 +140,17 @@ class bam_stats(stage_wrapper.Stage_Wrapper):
                     c += k+'='+str(seqs[k][0])+':'+str(seqs[k][1])+'\n'
                     x += seqs[k][0]
                     y += seqs[k][1]
-            c += 'average coverage = %s\n'%(int(round(1.0*y/(x+1),0)))
+            cov = max(1,int(round(1.0*y/(x+1),0))) #at least RD of 1
+            c += 'average coverage = %s\n'%cov
             c += 'over total length of %s\n'%x
             with open(out_name+'.cov','w') as f: f.write(c)
-            #get the summary
             s = subprocess.check_output(' '.join(summary), stderr=subprocess.STDOUT, shell=True)
+            
             with open(out_name+'.summary','w') as f:
-                f.write(s)
-            output = 'calculating summaries of read statistics\n'
+                f.write(s+'\n%s'%)
+            output  = 'calculating summaries of read statistics\n'
             output += 'ref size = %s\n'%x
-            output += 'average depth = %s\n'%(int(round(1.0*y/(x+1),0)))
+            output += 'average depth = %s\n'%(max(1,int(round(1.0*y/(x+1),0)))) #at least RD of 1
             output += s
         except subprocess.CalledProcessError as E:
             print('call error: '+E.output)        #what you would see in the term

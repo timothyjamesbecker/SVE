@@ -221,23 +221,29 @@ with svedb.SVEDB(dbc['srv'], dbc['db'], dbc['uid'], dbc['pwd']) as dbo:
        staging.has_key('genome_strip') and auto_RD_RL or \
        staging.has_key('breakseq') and auto_RD_RL:
         #check for the *_S3 files first
-        in_stats = glob.glob(directory+'*_S'+sids['bam_stats'])
+        in_stats = sorted(glob.glob(directory+'*_S'+sids['bam_stats']))
         h,v = False,False
         for i in range(len(in_stats)):
             if in_stats[i].endswith('.header'): h = True
             if in_stats[i].endswith('.valid'):  v = True 
-        if h and v: #have the stats files already generated run bam_clean
+        if h and v and len(in_stats)>4: #have the 5 stats files already generated run bam_clean
             st = stage.Stage('bam_clean',dbc)
             bam_clean_params = st.get_params()
             bam_clean_params['-t'] = 4 #default threads
             st.set_params(bam_clean_params)
-            outs = st.run(run_id,{'.header':[in_stats[0]],'.valid':[in_stats[1]],
+            outs = st.run(run_id,{'.header':[in_stats[1]],'.valid':[in_stats[4]],
                                   '.bam':bams,'out_dir':[directory]})
         else:
             print('---------------running stats and conditional cleaning-------------------')
             st = stage.Stage('bam_stats',dbc)
             outs = st.run(run_id,{'.bam':bams,'out_dir':[directory]})
             try: #pull out the positions here
+                #open the summary file which has these values and more
+                summary,s = glob.glob(directory+'*'+sids['bam_stats']+'.summary')[0],''
+                with open(summary,'r') as f:
+                    s = ''.join(f.read.lines())
+                RD = int(round(float))
+                
                 RD = int(round(float(outs.split('\n')[2].split(' = ')[-1]),0))                #average depth
                 RL = int(round(float(outs.split('\n')[25].split(':')[-1].split('\t')[-1]),0)) #average length
             except Exception as E:

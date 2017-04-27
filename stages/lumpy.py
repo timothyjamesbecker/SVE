@@ -54,8 +54,23 @@ class lumpy(stage_wrapper.Stage_Wrapper):
         PERL = self.software_path+'/vcftools_0.1.12b/perl'
         if os.environ.has_key('PERL5LIB'):
             PERL += ':'+os.environ['PERL5LIB']
-        sv_call   = [lumpy,'-B']+ [','.join(in_names['.bam'])]+\
-                     ['-m 4','-T',out_dir+'temp','-P','-o',out_names['.calls']] #more work on params
+        #check for samblaster files and use faster version if possible
+        ds = {'s':[],'d':[]}
+        for x in in_names['.bam']:
+            stub = x.replace('.bam','')
+            s = [stub+'.discordants.bam',stub+'.splitters.bam']
+            if all([os.path.exists(y) for y in s]):
+                ds['d'],ds['s'] = ds['d']+[s[0]],ds['s']+[s[1]]
+        print('searching for discordant and splitter files: %s'%ds)
+        if len(in_names['.bam'])==len(ds['d']) and len(ds['d'])==len(ds['s']): #three files per sample
+            sv_call = [lumpy]+\
+                      ['-B']+[','.join(in_names['.bam'])]+\
+                      ['-D']+[','.join(ds['d'])]+\
+                      ['-S']+[','.join(ds['s'])]+\
+                      ['-m 4','-T',out_dir+'temp','-P','-o',out_names['.calls']]
+        else: #just one file per dample here-----------------------------------------------------------
+            sv_call = [lumpy,'-B']+ [','.join(in_names['.bam'])]+\
+                      ['-m 4','-T',out_dir+'temp','-P','-o',out_names['.calls']] #more work on params
         #sv_fast can do a version that checks for matching .bam, .split.bam and .disc.bam triples (prior samblasted)
         sort_vcf  = [vcfsort,out_names['.calls'],'>',out_names['.vcf']]        
         self.db_start(run_id,in_names['.bam'][0])        
