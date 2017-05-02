@@ -227,6 +227,28 @@ with svedb.SVEDB(dbc['srv'], dbc['db'], dbc['uid'], dbc['pwd']) as dbo:
             if in_stats[i].endswith('.header'): h = True
             if in_stats[i].endswith('.valid'):  v = True 
         if h and v and len(in_stats)>4: #have the 5 stats files already generated run bam_clean
+            try:
+                validation,s = glob.glob(directory+'*'+sids['bam_stats']+'.valid')[0],''
+                with open(validation,'r') as f:
+                    s = ''.join(f.readlines())
+                if any([True if x.upper()=='NO ERRORS FOUND' else False for x in validation.split('\n')]):
+                    print('bam_stats validation has passed, NO ERRORS FOUND-----------------')
+                #pull out the errors and see what is up
+            except Exception as E:
+                print(E)
+                print('Error reading the validation file-----------------')
+            try: #pull out the positions here
+                #open the summary file which has these values and more
+                summary,s = glob.glob(directory+'*'+sids['bam_stats']+'.summary')[0],''
+                with open(summary,'r') as f:
+                    s = ''.join(f.readlines())
+                RD = int(s.rsplit('average depth:')[-1].split('\n')[0].strip(' ').strip('\t'))
+                RL = int(s.rsplit('average length:')[-1].split('\n')[0].strip(' ').strip('\t'))
+            except Exception as E:
+                print(E)
+                print('--------------RD,RL not determined, setting default values-----------------')
+                RD,RL = 30,150
+                
             st = stage.Stage('bam_clean',dbc)
             bam_clean_params = st.get_params()
             bam_clean_params['-t'] = 4 #default threads
@@ -237,19 +259,16 @@ with svedb.SVEDB(dbc['srv'], dbc['db'], dbc['uid'], dbc['pwd']) as dbo:
             print('---------------running stats and conditional cleaning-------------------')
             st = stage.Stage('bam_stats',dbc)
             outs = st.run(run_id,{'.bam':bams,'out_dir':[directory]})
-            try: #pull out the positions here
-                #open the summary file which has these values and more
+            try: #open summary file to get RD, RL
                 summary,s = glob.glob(directory+'*'+sids['bam_stats']+'.summary')[0],''
                 with open(summary,'r') as f:
-                    s = ''.join(f.read.lines())
-                RD = int(round(float))
-                
-                RD = int(round(float(outs.split('\n')[2].split(' = ')[-1]),0))                #average depth
-                RL = int(round(float(outs.split('\n')[25].split(':')[-1].split('\t')[-1]),0)) #average length
+                    s = ''.join(f.readlines())
+                RD = int(s.rsplit('average depth:')[-1].split('\n')[0].strip(' ').strip('\t'))
+                RL = int(s.rsplit('average length:')[-1].split('\n')[0].strip(' ').strip('\t'))
             except Exception as E:
                 print(E)
                 print('--------------RD,RL not determined, setting default values-----------------')
-                RD,RL = 30,100
+                RD,RL = 30,150
             st = stage.Stage('bam_clean',dbc)
             in_stats = glob.glob(directory+'*'+sids['bam_stats']+'.header') +\
                        glob.glob(directory+'*'+sids['bam_stats']+'.valid')
@@ -267,7 +286,6 @@ with svedb.SVEDB(dbc['srv'], dbc['db'], dbc['uid'], dbc['pwd']) as dbo:
                 with open(valid) as f: print(f.readlines())
                 outs = st.run(run_id,{'.header':[header],'.valid':[valid],
                                        '.bam':bams,'out_dir':[directory]})
-                #:::TO DO::: check on last time for validation...
         if verbose: print(outs)
 
     if staging.has_key('bam2cram'):
@@ -324,7 +342,7 @@ with svedb.SVEDB(dbc['srv'], dbc['db'], dbc['uid'], dbc['pwd']) as dbo:
         if verbose: print(outs)
     
     if staging.has_key('delly'):     
-        #delly
+        #delly 2
         st = stage.Stage('delly',dbc)
         outs = st.run(run_id, {'.fa':[ref_fa_path],'.bam':bams,'out_dir':[directory]})
         if verbose: print(outs)
@@ -341,8 +359,6 @@ with svedb.SVEDB(dbc['srv'], dbc['db'], dbc['uid'], dbc['pwd']) as dbo:
     if staging.has_key('breakseq'):
         #breakseq
         brkptlib_path = '/'.join(ref_fa_path.rsplit('/')[0:-1])+'/'+refbase+sids['breakseq']
-#        print(brkptlib_path)
-        #check that it exists and swap it out if need be....
         st = stage.Stage('breakseq',dbc)
         bs_params = st.get_params()
         bs_params['window']['value']   = 2*RL
@@ -359,15 +375,13 @@ with svedb.SVEDB(dbc['srv'], dbc['db'], dbc['uid'], dbc['pwd']) as dbo:
         if args.verbose: print(outs)
   
     if staging.has_key('cnvnator'):
-        #file dump issue related to paramiko ENV variable and the root system in cnvnator
         #cnvnator VC
         st = stage.Stage('cnvnator',dbc)
         cnvnator_params = st.get_params()    #automatically get the depth and length
-        cnvnator_params['window']['value'] = ru.expected_window(depth=RD,length=RL,target=100)
+        cnvnator_params['window']['value'] = ru.expected_window(depth=RD,length=RL,target=50)
         st.set_params(cnvnator_params)
         outs = st.run(run_id, {'.fa':[ref_fa_path],'.bam':bams,'out_dir':[directory]})
-        if len(outs)<int(1E3):
-            if verbose: print(outs)
+        if verbose: print(outs[:min(int(1E3),len(outs))]) #print first 1E3 lines
     
     if staging.has_key('genome_strip'):
         #genomestrip
@@ -384,6 +398,9 @@ with svedb.SVEDB(dbc['srv'], dbc['db'], dbc['uid'], dbc['pwd']) as dbo:
     if staging.has_key('gatk_haplo'):
         #gatk Haplotyper VC
         st = stage.Stage('gatk_haplo',dbc)
+        gatk_params = st.get_params()
+        gatk_params['-nt']['value']  = 12 #threads
+        gatk_params['-Xmx']['value'] = 24 #mem GB
         outs = st.run(run_id,{'.fa':[ref_fa_path],'.bam':bams,'out_dir':[directory]})
         if verbose: print(outs)
         #gatk VairantReCalibration using dbsnp, known:Hapmap, 1Kgenomes, etc...

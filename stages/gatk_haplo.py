@@ -42,14 +42,9 @@ class gatk_haplo(stage_wrapper.Stage_Wrapper):
         #[2a]build command args
         java = self.software_path+'/jre1.8.0_25/bin/java'
         gatk = self.software_path+'/GATK_3.6/GenomeAnalysisTK.jar'
-        command = [java,'-Xmx12g','-jar',gatk,'-T','HaplotypeCaller',
-                   '-R',in_names['.fa'],'-I'] + in_names['.bam']
-        #add this param function
-        for k in self.params:
-            param = self.params[k]
-            if param['type']=='bool':
-                if param['value']: command += [k]
-            else: command += [k, str(param['value'])]  
+        mem,threads = self.params['-Xmx']['value'],self.params['-nt']['value']
+        command = [java,'-Xmx%sg'%mem,'-jar',gatk,'-T','HaplotypeCaller',
+                   '-nt %s'%threads,'-R',in_names['.fa'],'-I'] + in_names['.bam'] 
         command += ['-o',out_names['.vcf']]
         #[2b]make start entry which is a new staged_run row
         self.command = command

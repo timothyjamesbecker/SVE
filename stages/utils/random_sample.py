@@ -7,8 +7,8 @@ Timothy James Becker, PhD candidate, UCONN 04/27/2017
 ------------------------------------------------------------
 Given a BAM input, pass the header while randomly sampling with bernoulli probabilty -s
 [USAGE]
-samtools view -Sh sample.bam | random_sample.py -s 1E-3 | java -jar picard.jar ValidateSamFile I=/dev/stdin"""
-parser = argparse.ArgumentParser(description='',formatter_class=argparse.RawTextHelpFormatter)
+samtools view -Sh sample.bam | random_sample.py -s 1E-3"""
+parser = argparse.ArgumentParser(description=des,formatter_class=argparse.RawTextHelpFormatter)
 parser.add_argument('-s', '--sample_prob',type=float,help='sampling probabilty\t[1E-6]')
 args = parser.parse_args()
 if args.sample_prob is not None:

@@ -44,7 +44,7 @@ def gs_process_tester(i,out_dir):
 #default SVE in-stage || dispatch for multi-cores----------------------------------------------------- 
    
 #function for auto-making svedb stage entries and returning the stage_id
-class genome_strip(stage_wrapper.Stage_Wrapper):
+class genome_strip_prepare_ref(stage_wrapper.Stage_Wrapper):
     #path will be where a node should process the data using the in_ext, out_ext
     #stage_id should be pre-registered with db, set to None will require getting
     #a new stage_id from the  db by writing and registering it in the stages table
@@ -72,9 +72,10 @@ class genome_strip(stage_wrapper.Stage_Wrapper):
         cascade = self.strip_in_ext(in_names['.fa'],'.fa')
         out_names = {'.fa' :cascade+'_S'+str(self.stage_id)+out_exts[0],
                      '.fa.svmask.fasta' : cascade+'_S'+str(self.stage_id),
-                     '.dict': cascade+'_S'+str(self.stage_id)+out_exts[2],
-                     '.ploidymap.txt':cascade+'_S'+str(self.stage_id)+out_exts[3],
-                     '.rdmask.bed':cascade+'_S'+str(self.stage_id)+out_exts[4]}  
+                     '.fa.gcmask.fasta' : cascade+'_S'+str(self.stage_id)+out_exts[2],
+                     '.dict': cascade+'_S'+str(self.stage_id)+out_exts[3],
+                     '.ploidymap.txt':cascade+'_S'+str(self.stage_id)+out_exts[4],
+                     '.rdmask.bed':cascade+'_S'+str(self.stage_id)+out_exts[5]}  
         #[2a]build command args
         
         #environment variable passing here
@@ -103,7 +104,7 @@ class genome_strip(stage_wrapper.Stage_Wrapper):
         picard = self.software_path+'/picard-tools-2.5.0/picard.jar'
         dictbuild = [java,'-jar',picard,'CreateSequenceDictionary',
                      'R='+out_names['.fa'], 'O='+out_names['.dict'], 'CREATE_INDEX=true']
-        #builg genome_mask
+        #build genome_mask
 #        java -Xmx2g -cp SVToolkit.jar:GenomeAnalysisTK.jar \
 #        org.broadinstitute.sv.apps.ComputeGenomeMask \ 
 #        -R Homo_sapiens_assembly18.fasta \ 
@@ -131,8 +132,8 @@ class genome_strip(stage_wrapper.Stage_Wrapper):
         if x_n == '' or y_n == '':
             ploidy = ''.join(doubles)
         else:
-            singles = [x_n,' 1 ',str(x_l),' F',' 2\n',
-                       x_n,' 1 ',str(x_l),' M',' 1\n',
+            singles = [x_n,' 2699521 ',str(x_l),' F',' 2\n',
+                       x_n,' 2699521 ',str(x_l),' M',' 1\n',
                        y_n,' 1 ',str(y_l),' F',' 0\n',
                        y_n,' 1 ',str(y_l),' M',' 1\n']
             ploidy = ''.join(singles+doubles)
@@ -146,22 +147,52 @@ class genome_strip(stage_wrapper.Stage_Wrapper):
 #        1	61699999	61900000
         rdmask_name = out_names['.rdmask.bed']
         rdmask = [['CHR','START','END']]
-        for i in range(len(seq_n[:-2])):
+        for i in range(len(seq_n)):
             rdmask += [[seq_n[i],'1',str(seq_l[i])]]
         with open(rdmask_name,'w') as csvfile:
             print('writing rdmask for genomestrip')
             csvwriter = csv.writer(csvfile, delimiter='\t')
             for row in rdmask:
                 csvwriter.writerow(row)
+                
 #        for row in rdmask:
 #            for r in row: print r+'\t',
 #            print('')
         #[2] gc mask fasta
-        
-        #[3] gender_map this is for each sample...       
+        print('writinf gc mask for genomestrip')
+        GC = {}
+        for i in range(len(seq_n)): #default is unmasked = 0
+            GC[seq_n[i]] = ''.join(['0' for j in range(seq_l[i])])
+        sr.write_fasta(GC,out_names['.fa.gcmask.fasta'])
+        output,err = '',{}
+        try:
+            print('indexing the gcmask.fasta file')
+            output += subprocess.check_output(' '.join(['samtools faidx',out_names['.fa.gcmask.fasta']]),stderr=subprocess.STDOUT,
+                                                 shell=True,env={'PATH':PATH,'SV_DIR':SV_DIR,'LD_LIBRARY_PATH':LD_LIB})
+        except subprocess.CalledProcessError as E:
+            print('call error: '+E.output)        #what you would see in the term
+            err['output'] = E.output
+            #the python exception issues (shouldn't have any...
+            print('message: '+E.message)          #?? empty
+            err['message'] = E.message
+            #return codes used for failure....
+            print('code: '+str(E.returncode))     #return 1 for a fail in art?
+            err['code'] = E.returncode
+        except OSError as E:
+            print('os error: '+E.strerror)        #what you would see in the term
+            err['output'] = E.strerror
+            #the python exception issues (shouldn't have any...
+            print('message: '+E.message)          #?? empty
+            err['message'] = E.message
+            #the error num
+            print('code: '+str(E.errno))
+            err['code'] = E.errno
+        print('output:\n'+output)
+        print(output)
         
         self.db_start(run_id,out_names['.fa'])        
         #[3a]execute the command here----------------------------------------------------
+        """
         output,err = '',{}
         try:
             print('duplicating the reference for genomestrip')
@@ -190,8 +221,8 @@ class genome_strip(stage_wrapper.Stage_Wrapper):
                 chrmasks += [chrmask]
                 if not os.path.exists(chrmask):
                     genomemask = [java,'-cp',classpath,cgm,'-R',out_names['.fa'],
-                                  '-O',chrmask,'-readLength',str(100),'-sequence',chrom] #try with a large read length = 250?
-                    print('passing command %s'%' '.join(genomemask))
+                                  '-O',chrmask,'-readLength',str(150),'-sequence',chrom] #try with a large read length = 250?
+                    print('passing command %s'%' '.join(genomemask))                     #could use a more efficient library
                     p1.apply_async(genome_masker,
                                    args=(chrom,genomemask,PATH,SV_DIR,LD_LIB),
                                    callback=gs_collect_results)
@@ -236,7 +267,7 @@ class genome_strip(stage_wrapper.Stage_Wrapper):
             print('code: '+str(E.errno))
             err['code'] = E.errno
         print('output:\n'+output)
-        
+        """
         #[3b]check results--------------------------------------------------
         if err == {}:
             self.db_stop(run_id,{'output':output},'',True)

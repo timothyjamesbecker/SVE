@@ -20,10 +20,10 @@ class bam_stats(stage_wrapper.Stage_Wrapper):
         return 0  
     
     #pull data from the samtools [flag]stats
-    def get_summary_value(self,summary,row,defaut=0):
+    def get_summary_value(self,summary,row,default=0):
         v = default #default
         try:
-            v = int(s.rsplit(row+':')[-1].split('\n')[0].strip(' '))
+            v = int(row.rsplit(row+':')[-1].split('\n')[0].strip(' '))
         except Exception as E:
             print(E)
             pass
@@ -96,8 +96,6 @@ class bam_stats(stage_wrapper.Stage_Wrapper):
         phred       = self.software_path+'/SVE/stages/utils/phred_encoding.py'
         valid       = [java,'-Xmx8g','-jar',picardtools,'ValidateSamFile','MODE=SUMMARY',
                        'IGNORE=MATE_CIGAR_STRING_INVALID_PRESENCE','IGNORE_WARNINGS=true',
-                       #change this to randomly sample from the input
-                       #'I=/dev/stdin','O=%s'%out_name+'.valid'
                        'I=%s'%in_names['.bam'],'O=%s'%out_name+'.valid']
         summary     = [samtools,'stats',in_names['.bam'],'| grep ^SN | cut -f 2-']
         header      = [samtools, 'view', '-SH', in_names['.bam']]
@@ -106,7 +104,7 @@ class bam_stats(stage_wrapper.Stage_Wrapper):
         replace_rg  = [java, '-Xmx4g','-jar',picardtools,'AddOrReplacereadGroups',
                        'I=%s'%in_names['.bam'],'0=%s'%in_names['.bam'].replace('.bam','.rg.bam')]
         #some routines here for X:Y analysis for gender estimation
-
+        #if cov Y is ~ cov X -> male else female
         #write   =   ['echo',' > ',out_name]             
         #[2b]make start entry which is a new staged_run row
         self.command = summary
@@ -145,9 +143,9 @@ class bam_stats(stage_wrapper.Stage_Wrapper):
             c += 'over total length of %s\n'%x
             with open(out_name+'.cov','w') as f: f.write(c)
             s = subprocess.check_output(' '.join(summary), stderr=subprocess.STDOUT, shell=True)
-            
+            length = self.get_summary_value(s,'average length')
             with open(out_name+'.summary','w') as f:
-                f.write(s+'\n%s'%)
+                f.write('ref size:\t%s\naverage depth:\t%s\n'%(x,cov)+s)
             output  = 'calculating summaries of read statistics\n'
             output += 'ref size = %s\n'%x
             output += 'average depth = %s\n'%(max(1,int(round(1.0*y/(x+1),0)))) #at least RD of 1

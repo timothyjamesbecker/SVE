@@ -149,6 +149,7 @@ elif args.ref_path is not None: #using existing ref, now just process
             print('parsed target map as: %s'%target_map)
             for target in target_map:
                 for target_file in target_map[target]:
+                    #check for a .tar.gz archive...
                     if not os.path.exists(target_file):
                         new_name = '' #su.stage_meta -> need some stage utils here?
                         target_copy = []
@@ -257,10 +258,17 @@ if __name__ == '__main__':
         copy_stop = time.time()
         print('[I] COPY/WRITE SECTION COMPLETED IN %s SEC'%round(copy_stop-copy_start,0))
         seq_start = time.time()
-        #[1]--------------------------------------------------------------------------------------------
         ss_len = len(ss)
         tt = [x.name for x in ss] #get names
-        #could do this in ||::::::::::::::::::::::::::::::::::::::::::::::::
+        #[1]--------------------------------------------------------------------------
+        gs_start = time.time()
+        #genomestrip index and genome masking
+        st = stage.Stage('genome_strip_prepare_ref',dbc) #potentially use another library to do the svmasking
+        outs = st.run(run_id, {'.fa':[ref_fa_path],'cpus':max(1,cpus/2)}) #svmask gets out of hand with memory per cpu
+        print(outs)
+        gs_stop = time.time()
+        print('[II] GS SVMASK SECTION COMPLETED IN %s SEC'%round(gs_stop-gs_start,0))
+        """
         p1 = mp.Pool(processes=cpus)
         for x in tt: #try to index the fasta files
             p1.apply_async(fasta_seq_index,
@@ -273,7 +281,7 @@ if __name__ == '__main__':
         print(result_list)
         result_list = []
         seq_stop = time.time()
-        print('[II] SEQ SECTION COMPLETED IN %s SEC'%round(seq_stop-seq_start,0))
+        print('[III] SEQ SECTION COMPLETED IN %s SEC'%round(seq_stop-seq_start,0))
         #[2]---------------------------------------------------------------------
         #could do this in ||::::::::::::::::::::::::::::::::::::::::::::::::
         seqs,ss = {},[] #clear out mem?
@@ -291,19 +299,12 @@ if __name__ == '__main__':
         print('2nd || full ref multi indexing completed, results are:')
         print(result_list)
         mult_stop = time.time()
-        print('[III] MULTI INDEX SECTION COMPLETED IN %s SEC'%round(mult_stop-mult_start,0))
-        #[3]--------------------------------------------------------------------------
-        gs_start = time.time()
-        #genomestrip index and genome masking
-        st = stage.Stage('genome_strip_prepare_ref',dbc)
-        outs = st.run(run_id, {'.fa':[ref_fa_path],'cpus':max(1,cpus/2)}) #svmask gets out of hand with memory per cpu
-        print(outs)
-        gs_stop = time.time()
-        print('[IV] GS SVMASK SECTION COMPLETED IN %s SEC'%round(gs_stop-gs_start,0))
+        print('[IV] MULTI INDEX SECTION COMPLETED IN %s SEC'%round(mult_stop-mult_start,0))
         #mrfast/variation hunter fasta ref indexing
     #    st = stage.Stage('mrfast_index')
     #    outs = st.run(run_id,{'.fa':[ref_fa_path]})
     #    print(outs)
+        """
         full_stop = time.time()
         print('FULL REF PREPARATION IN %s SEC'%round(full_stop-full_start,0))
         #do this once for each ref ... RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR

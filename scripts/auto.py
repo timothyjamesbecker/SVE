@@ -11,7 +11,6 @@ relink = os.path.dirname(os.path.abspath(__file__))+'/../'
 sys.path.append(relink) #go up one in the modules
 import read_utils as ru
 import stage_utils as su
-import svedb
 
 result_list = []
 def collect_results(result):
@@ -108,8 +107,9 @@ else:
         raise IOError
 if args.target is not None:
     target_str = args.target #target mapping string, need to parse it
-else:
+else: #default targets
     target_str = 'breakseq:'+os.path.dirname(os.path.abspath(__file__))+'/../data/breakseq2*.fna'
+    #assume genome_strip is in the same directory as referece and ends with .tar.gz
 if args.cpus is not None:
     cpus = int(args.cpus)
 else:
@@ -212,9 +212,9 @@ vcf_sample = vcf_directory+'/%s/'%SM
 print('starting variant calling')
 variant_processor = [scripts_path+'variant_processor.py','-r',ref_fa_path,'-b',bam_path,'-o',vcf_sample,'-s']
 #redo this when every you add new callers to create faster workflows
-jobs = [['bam_stats','breakdancer','delly','lumpy'],
-        ['cnmops','cnvnator','breakseq'],
-        ['hydra','genome_strip','gatk_haplo']]
+jobs = [['bam_stats','breakdancer','lumpy','breakseq'],
+        ['cnmops','cnvnator','genome_strip','hydra'],
+        ['gatk_haplo','delly']]
 for job in jobs:                                      
     print('dispatching %s of %s jobs'%(i,len(jobs)))   #each group will wait for each other to finish
     p1 = mp.Pool(processes=cpus)                                 #so bam_stats can pass on D L values
@@ -246,5 +246,21 @@ except Exception as E:
 if args.verbose: print(output)
 
 #(E) Run TigraSV with FusorSv output
-#(F) Rerun FusorSv with TigraSV
-
+#get the FusorSV VCF file and set as target
+output = ''
+targeted_assembly = [scripts_path+'variant_processor.py','-r',ref_fa_path,'-b',bam_path,
+                     '-o',vcf_sample,'-s','tigra','-t']
+try:
+    fusor_vcf = glob.glob(fusorsv_out+'/vcf/*_S*.vcf')[0]
+    output += subprocess.check_output(' '.join(targeted_assembly+[fusor_vcf]),shell=True)
+except Exception as E:
+    print(E)
+    raise IOError
+if args.verbose: print(output)
+#(F) Rerun FusorSV with TigraSV and ctg directory
+try :
+    output += subprocess.check_output(' '.join(fusor_sv),shell=True)
+except Exception as E:
+    print(E)
+    raise IOError
+if args.verbose: print(output)

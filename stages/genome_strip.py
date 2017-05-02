@@ -55,15 +55,13 @@ class genome_strip(stage_wrapper.Stage_Wrapper):
         SV_DIR = soft+'/svtoolkit'
         SV_TMPDIR = out_dir+'/temp'
         if not os.path.exists(SV_TMPDIR): os.makedirs(SV_TMPDIR)
-        PATH = soft+'/jre1.7.0_72/bin:'+ \
+        PATH = soft+'/jre1.8.0_51/bin:'+ \
                soft+'/svtoolkit/bwa:'+ \
                soft+'/samtools-1.3:'+ \
                soft+'/bcftools-1.3:'+ \
                soft+'/htslib-1.3:'+ \
-               '/opt/compsci/R/3.2.1/bin:'+ \
-               '/opt/compsci/pbs-drmaa/1.0.17/bin'+ \
                os.environ['PATH']
-        LD_LIB = soft+'/svtoolkit/bwa:'+'/opt/compsci/pbs-drmaa/1.0.17/lib'#dynamic libs
+        LD_LIB = soft+'/svtoolkit/bwa:'+''#dynamic libs
         if os.environ.has_key('LD_LIBRARY_PATH'):
             LD_LIB += ':'+os.environ['LD_LIBRARY_PATH']
         print('checking environment variable = PATH:\n%s'%PATH)
@@ -82,7 +80,7 @@ class genome_strip(stage_wrapper.Stage_Wrapper):
         #reused paths and files...
         sv = self.software_path+'/svtoolkit'
         classpath = sv+'/lib/SVToolkit.jar:'+sv+'/lib/gatk/GenomeAnalysisTK.jar:'+sv+'/lib/gatk/Queue.jar'
-        java  = self.software_path+'/jre1.7.0_72/bin/java -Xmx'+str(RAM)+'g'
+        java  = self.software_path+'/jre1.8.0_51/bin/java -Xmx'+str(RAM)+'g'
         qcmd  = 'org.broadinstitute.gatk.queue.QCommandLine'
         qs    = sv+'/qscript/SVQScript.q'
         gatk  = sv+'/lib/gatk/GenomeAnalysisTK.jar'
@@ -129,7 +127,7 @@ class genome_strip(stage_wrapper.Stage_Wrapper):
                           '-jobNative "-v classpath=%s"'%classpath,
                           '-jobNative "-l nodes=1:ppn=%s,walltime=%s,mem=%sg"'%(str(CPU),str(TIME),str(RAM*2))]
             #job specific commands
-            job = ['-gatkJobRunner PbsEngine','-jobRunner PbsEngine','--disableJobReport']
+            job = ['-gatkJobRunner PbsEngine','-jobRunner PbsEngine','--disableJobReport'] #use LSF on ubuntu?
         else:
             scheduler = []
             job = ['--disableJobReport']
@@ -336,7 +334,7 @@ class genome_strip(stage_wrapper.Stage_Wrapper):
             err['code'] = E.errno
         print('output:\n' + output)
         
-        #[3] GenomeSTRiP2.0 CNV algorithm (this needs the gs_slpit_merge.py)
+        #[3] GenomeSTRiP2.0 CNV algorithm (this needs the gs_spilt_merge.py)
         cnv = sv+'/qscript/discovery/cnv/CNVDiscoveryPipeline.q'
         cnv_discovery = [java,'-cp %s'%classpath,
                          qcmd,
