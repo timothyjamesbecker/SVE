@@ -237,7 +237,7 @@ fusorsv_out = directory+'/fusorsv_out/'
 fusor_sv = [scripts_path+'../../FusorSV/FusorSV.py',
             '-r',ref_fa_path,'-i',vcf_directory,
             '-f',scripts_path+'../../FusorSV/data/models/human_g1k_v37_decoy.P3.pickle',
-            '-o',fusorsv_out,'-p',str(cpus),'-M',str(0.5),'-L','DEFAULT']
+            '-o',fusorsv_out,'-p',str(cpus),'-L','DEFAULT']
 try :
     output += subprocess.check_output(' '.join(fusor_sv),shell=True)
 except Exception as E:
@@ -257,10 +257,10 @@ except Exception as E:
     print(E)
     raise IOError
 if args.verbose: print(output)
-#(F) Rerun FusorSV with TigraSV and ctg directory
-try :
-    output += subprocess.check_output(' '.join(fusor_sv),shell=True)
-except Exception as E:
-    print(E)
-    raise IOError
-if args.verbose: print(output)
+##(F) Rerun FusorSV with TigraSV and ctg directory
+#try :
+#    output += subprocess.check_output(' '.join(fusor_sv),shell=True)
+#except Exception as E:
+#    print(E)
+#    raise IOError
+#if args.verbose: print(output)
