@@ -395,7 +395,7 @@ with svedb.SVEDB(dbc['srv'], dbc['db'], dbc['uid'], dbc['pwd']) as dbo:
                                '.fa.gcmask.fasta': [gs_ref_path+'.fa.gcmask.fasta'],
                                '.ploidymap.txt':  [gs_ref_path+'.ploidymap.txt'],
                                '.rdmask.bed': [gs_ref_path+'.rdmask.bed'],
-                               '.intverval.list': [gs_ref_path+'.interval.list'],
+                               '.interval.list': [gs_ref_path+'.interval.list'],
                                '.bam':bams,'out_dir':[directory]})
         if verbose: print(outs)
 
