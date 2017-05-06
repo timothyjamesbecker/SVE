@@ -223,7 +223,7 @@ for job in jobs:
         p1.apply_async(run_variant_processor,
                        args=(variant_processor,stage),
                        callback=collect_results)
-        time.sleep(0.5)
+        time.sleep(5.0)
     p1.close()
     p1.join()
     print('|| execution pool completed on job %s'%i)

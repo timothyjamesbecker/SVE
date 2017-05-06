@@ -70,6 +70,7 @@ def get_fasta_seq_names_lens(fasta_path):
     for s in ht.FastaReader(fasta_path): ss[s.name]=len(s)
     return ss
 
+#must include the sequence.name property to work correctly
 def write_fasta(seqs, fasta_path):
     with open(fasta_path, 'w') as fasta:
         if type(seqs) is list:

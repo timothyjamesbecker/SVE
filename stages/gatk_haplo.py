@@ -43,8 +43,11 @@ class gatk_haplo(stage_wrapper.Stage_Wrapper):
         java = self.software_path+'/jre1.8.0_25/bin/java'
         gatk = self.software_path+'/GATK_3.6/GenomeAnalysisTK.jar'
         mem,threads = self.params['-Xmx']['value'],self.params['-nt']['value']
+        nt   = max(1,len(in_names['.bam']))
+        nct  = max(1,int(round(1.0*threads/nt,0)))
         command = [java,'-Xmx%sg'%mem,'-jar',gatk,'-T','HaplotypeCaller',
-                   '-nt %s'%threads,'-R',in_names['.fa'],'-I'] + in_names['.bam'] 
+                   '-R',in_names['.fa'],'-I'] + in_names['.bam'] 
+#                   '-nt %s'%nt,'-nct %s'%nct, for ||
         command += ['-o',out_names['.vcf']]
         #[2b]make start entry which is a new staged_run row
         self.command = command
@@ -54,7 +57,7 @@ class gatk_haplo(stage_wrapper.Stage_Wrapper):
         #[3a]execute the command here----------------------------------------------------
         output,err = '',{}
         try:
-            output = subprocess.check_output(command,stderr=subprocess.STDOUT)
+            output = subprocess.check_output(command,stderr=subprocess.STDOUT,shell=True)
         #catch all errors that arise under normal call behavior
         except subprocess.CalledProcessError as E:
             print('call error: '+E.output)        #what you would see in the term

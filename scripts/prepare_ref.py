@@ -55,7 +55,7 @@ def collect_results(result):
 #base directory coresponds to the -o argument, x is the sequence name
 def fasta_seq_index(directory, x, run_id, dbc):
     output = []
-    indexes = [os.path.exists(directory+x+'.fa.'+ suffix) for suffix in ['amb','ann','bwt','pac','sa']]
+    indexes = [os.path.exists(directory+x+'.fa.'+ suffix) for suffix in ['amb','ann','bwt','pac','sa','.fai']]
     print('checking chrom %s indexes = %s'%(x,all(indexes)))
     if not all(indexes):
         print('bwa_index for chrom %s not found...'%x)
@@ -64,13 +64,20 @@ def fasta_seq_index(directory, x, run_id, dbc):
         output += [outs]
     else:
         output += ['%s were found, skipping bwa indexes...'%(indexes,)]
-    if not os.path.exists(directory+x+'fa.dict'):
+    if not os.path.exists(directory+x+'.fa.fai'):
+        print('samtools faidx index not found...'%x)
+        st = stage.Stage('samtools_fasta_index',dbc)
+        outs = st.run(run_id,{'.fa':[directory+x+'.fa']})
+        output += [outs]
+    else:
+        output += ['%s were found, skipping samtools faidx index...'%(directory+x+'.fa.fai')]
+    if not os.path.exists(directory+x+'.fa.dict'):
         print('picard_dict for chrom %s not found...'%x)
         st = stage.Stage('picard_dict',dbc)
         outs = st.run(run_id,{'.fa':[directory+x+'.fa']})
         output += [outs]
     else:
-        output += ['%s were found, skipping picard dict construction...'%(indexes,)]
+        output += ['%s were found, skipping picard dict construction...'%(directory+x+'.fa.dict')]
     print('|| section chrom %s completed'%x)
     return output    
 
@@ -267,8 +274,8 @@ if __name__ == '__main__':
         outs = st.run(run_id, {'.fa':[ref_fa_path],'cpus':max(1,cpus/2)}) #svmask gets out of hand with memory per cpu
         print(outs)
         gs_stop = time.time()
-        print('[II] GS SVMASK SECTION COMPLETED IN %s SEC'%round(gs_stop-gs_start,0))
-        """
+        print('[II] GS INDEX AND MASK SECTION COMPLETED IN %s SEC'%round(gs_stop-gs_start,0))
+        
         p1 = mp.Pool(processes=cpus)
         for x in tt: #try to index the fasta files
             p1.apply_async(fasta_seq_index,
@@ -300,11 +307,12 @@ if __name__ == '__main__':
         print(result_list)
         mult_stop = time.time()
         print('[IV] MULTI INDEX SECTION COMPLETED IN %s SEC'%round(mult_stop-mult_start,0))
+        
         #mrfast/variation hunter fasta ref indexing
     #    st = stage.Stage('mrfast_index')
     #    outs = st.run(run_id,{'.fa':[ref_fa_path]})
     #    print(outs)
-        """
+        
         full_stop = time.time()
         print('FULL REF PREPARATION IN %s SEC'%round(full_stop-full_start,0))
         #do this once for each ref ... RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR

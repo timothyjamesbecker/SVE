@@ -112,7 +112,9 @@ else:
 
 if args.out_dir is not None:    #optional reroute
     directory = args.out_dir
-if not os.path.exists(directory): os.makedirs(directory)
+try:
+    if not os.path.exists(directory): os.makedirs(directory)
+except Exception as E: pass
 
 if args.bams is not None:
     bams = args.bams.split(',') #CSL returns a list of 1+
@@ -385,18 +387,21 @@ with svedb.SVEDB(dbc['srv'], dbc['db'], dbc['uid'], dbc['pwd']) as dbo:
     
     if staging.has_key('genome_strip'):
         #genomestrip
+        #use chroms to generate a new .interval.list to limit analysis
         gs_ref_path = '/'.join(ref_fa_path.rsplit('/')[0:-1])+'/'+refbase+sids['genome_strip_prepare_ref']
         st = stage.Stage('genome_strip',dbc)
         outs = st.run(run_id, {'.fa':[gs_ref_path+'.fa'],
                                '.fa.svmask.fasta':[gs_ref_path+'.fa.svmask.fasta'],
+                               '.fa.gcmask.fasta': [gs_ref_path+'.fa.gcmask.fasta'],
                                '.ploidymap.txt':  [gs_ref_path+'.ploidymap.txt'],
                                '.rdmask.bed': [gs_ref_path+'.rdmask.bed'],
-                               '.gcmask.fasta': [gs_ref_path+'.gcmask.fasta'],
+                               '.intverval.list': [gs_ref_path+'.interval.list'],
                                '.bam':bams,'out_dir':[directory]})
         if verbose: print(outs)
 
     if staging.has_key('gatk_haplo'):
         #gatk Haplotyper VC
+        #use chroms to generate an interval list to limit analysis
         st = stage.Stage('gatk_haplo',dbc)
         gatk_params = st.get_params()
         gatk_params['-nt']['value']  = 12 #threads

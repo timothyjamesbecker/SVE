@@ -6,6 +6,7 @@ import random
 import time
 import multiprocessing as mp
 import subprocess32 as subprocess
+import HTSeq as ht
 sys.path.append('../') #go up one in the modules
 import stage_wrapper
 import read_utils as sr
@@ -75,7 +76,8 @@ class genome_strip_prepare_ref(stage_wrapper.Stage_Wrapper):
                      '.fa.gcmask.fasta' : cascade+'_S'+str(self.stage_id)+out_exts[2],
                      '.dict': cascade+'_S'+str(self.stage_id)+out_exts[3],
                      '.ploidymap.txt':cascade+'_S'+str(self.stage_id)+out_exts[4],
-                     '.rdmask.bed':cascade+'_S'+str(self.stage_id)+out_exts[5]}  
+                     '.rdmask.bed':cascade+'_S'+str(self.stage_id)+out_exts[5],
+                     '.interval.list':cascade+'_S'+str(self.stage_id)+out_exts[6]}  
         #[2a]build command args
         
         #environment variable passing here
@@ -94,8 +96,6 @@ class genome_strip_prepare_ref(stage_wrapper.Stage_Wrapper):
         cgm  = 'org.broadinstitute.sv.apps.ComputeGenomeMask'    
         ref  = in_names['.fa']
 
-        #must index with bwa-version-set to svtoolkit...
-        
         #cp the reference....
         copy = ['cp',ref,out_names['.fa']]
         print(copy)
@@ -104,26 +104,22 @@ class genome_strip_prepare_ref(stage_wrapper.Stage_Wrapper):
         picard = self.software_path+'/picard-tools-2.5.0/picard.jar'
         dictbuild = [java,'-jar',picard,'CreateSequenceDictionary',
                      'R='+out_names['.fa'], 'O='+out_names['.dict'], 'CREATE_INDEX=true']
-        #build genome_mask
-#        java -Xmx2g -cp SVToolkit.jar:GenomeAnalysisTK.jar \
-#        org.broadinstitute.sv.apps.ComputeGenomeMask \ 
-#        -R Homo_sapiens_assembly18.fasta \ 
-#        -O Homo_sapiens_assembly18.mask.chr1.36.fasta \ 
-#        -readLength 36 \
-#        -sequence chr13
-        
-        #build ploidy map, need chrom names and lens...
+
+        #update to take in an interval list IE desired seqs ti use, then generate masks!
+        #---------------------------------------------------------------------------------------------------------------     
+        #[1] build ploidy map, need chrom names and lens...
         seq_n = sr.get_fasta_seq_names(in_names['.fa']) #assume last two are sex chroms
         print('loaded sequence names: %s'%(seq_n,))
         seq_l = sr.get_fasta_seq_lens(in_names['.fa'])  #get the lens here
         ploidy_name = out_names['.ploidymap.txt']
 
-# could try this default human ploidy mapping.......
-#        X  2699521  154931043  F  2
-#        X  2699521  154931043  M  1
-#        Y        1   59373566  F  0
-#        Y        1   59373566  M  1
-#        *        *          *  *  2
+        # default human ploidy mapping.......
+        #        X  2699521  154931043  F  2
+        #        X  2699521  154931043  M  1
+        #        Y        1   59373566  F  0
+        #        Y        1   59373566  M  1
+        #        *        *          *  *  2
+
         x_n,y_n = '',''
         for i in range(0,len(seq_n)):
             if seq_n[i] == 'X'or seq_n[i] == 'chrX': x_n,x_l = seq_n[i],seq_l[i]
@@ -132,17 +128,17 @@ class genome_strip_prepare_ref(stage_wrapper.Stage_Wrapper):
         if x_n == '' or y_n == '':
             ploidy = ''.join(doubles)
         else:
-            singles = [x_n,' 2699521 ',str(x_l),' F',' 2\n',
-                       x_n,' 2699521 ',str(x_l),' M',' 1\n',
+            singles = [x_n,' 1 ',str(x_l),' F',' 2\n',
+                       x_n,' 1 ',str(x_l),' M',' 1\n',
                        y_n,' 1 ',str(y_l),' F',' 0\n',
                        y_n,' 1 ',str(y_l),' M',' 1\n']
             ploidy = ''.join(singles+doubles)
-#        print(ploidy)
+            
         with open(ploidy_name,'w') as f:
             print('writing ploidy map file for genomestrip')
             f.write(ploidy) #white space delimited with newline
         
-        #[1] this is now a readDepthMaskFile...reference.rdmask.bed
+        #[2] this is now a readDepthMaskFile...reference.rdmask.bed
 #        CHR	START	END
 #        1	61699999	61900000
         rdmask_name = out_names['.rdmask.bed']
@@ -154,21 +150,29 @@ class genome_strip_prepare_ref(stage_wrapper.Stage_Wrapper):
             csvwriter = csv.writer(csvfile, delimiter='\t')
             for row in rdmask:
                 csvwriter.writerow(row)
-                
-#        for row in rdmask:
-#            for r in row: print r+'\t',
-#            print('')
+        #[3] interval list of which chroms to use
+        print('writing sequence limititation interval list for genomestrip')
+        interval_list = out_names['interval.list']
+        if x_n=='X' and y_n=='Y':         #EBI style
+            default_interval = [str(i) for i in range(1,23,1)]+['X','Y']
+        elif x_n=='chrX' and y_n=='chrY': #UCSC style
+            default_interval = ['chr'%i for i in range(1,23,1)]+['chrX','chrY']
+        else:                             #some other style
+            default_interval = [seq_n[i] for i in range(len(seq_n))]
+        with open(interval_list,'w') as f:
+            f.write('\n'.join(default_interval)+'\n')
         #[2] gc mask fasta
-        print('writinf gc mask for genomestrip')
+        print('writing gcmask for genomestrip')
         GC = {}
         for i in range(len(seq_n)): #default is unmasked = 0
-            GC[seq_n[i]] = ''.join(['0' for j in range(seq_l[i])])
+            GC[seq_n[i]] = ht.Sequence(seq=''.join(['0' for j in range(seq_l[i])]),name=seq_n[i])
         sr.write_fasta(GC,out_names['.fa.gcmask.fasta'])
         output,err = '',{}
         try:
-            print('indexing the gcmask.fasta file')
-            output += subprocess.check_output(' '.join(['samtools faidx',out_names['.fa.gcmask.fasta']]),stderr=subprocess.STDOUT,
-                                                 shell=True,env={'PATH':PATH,'SV_DIR':SV_DIR,'LD_LIBRARY_PATH':LD_LIB})
+            print('indexing the .fa.gcmask.fasta file')
+            output += subprocess.check_output(' '.join(['samtools faidx',out_names['.fa.gcmask.fasta']]),
+                                              stderr=subprocess.STDOUT,shell=True,
+                                              env={'PATH':PATH,'SV_DIR':SV_DIR,'LD_LIBRARY_PATH':LD_LIB})
         except subprocess.CalledProcessError as E:
             print('call error: '+E.output)        #what you would see in the term
             err['output'] = E.output
@@ -189,10 +193,11 @@ class genome_strip_prepare_ref(stage_wrapper.Stage_Wrapper):
             err['code'] = E.errno
         print('output:\n'+output)
         print(output)
-        
+        #update to take in an interval list IE desired seqs ti use, then generate masks!
+        #---------------------------------------------------------------------------------------------------------------
         self.db_start(run_id,out_names['.fa'])        
         #[3a]execute the command here----------------------------------------------------
-        """
+        
         output,err = '',{}
         try:
             print('duplicating the reference for genomestrip')
@@ -267,11 +272,12 @@ class genome_strip_prepare_ref(stage_wrapper.Stage_Wrapper):
             print('code: '+str(E.errno))
             err['code'] = E.errno
         print('output:\n'+output)
-        """
+        
         #[3b]check results--------------------------------------------------
         if err == {}:
             self.db_stop(run_id,{'output':output},'',True)
-            results = [out_names['.fa.svmask.fasta']+out_exts[1]]
+            results = [out_names['.fa.svmask.fasta']+out_exts[1],
+                       out_names['.fa.gcmask.fasta'],ploidy_name,rdmask_name]
             #for i in results: print i
             if all([os.path.exists(r) for r in results]):
                 print("sucessfull........")

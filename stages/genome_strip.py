@@ -27,9 +27,10 @@ class genome_strip(stage_wrapper.Stage_Wrapper):
         #[1a]get input names and output names setup
         in_names = {'.fa':inputs['.fa'][0],
                     '.fa.svmask.fasta':inputs['.fa.svmask.fasta'][0],
+                    '.fa.gcmask.fasta':inputs['.fa.gcmask.fasta'][0],
                     '.ploidymap.txt'  :inputs['.ploidymap.txt'][0],
-                    '.rdmask.bed' :inputs['.rdmask.bed'][0],
-                    '.gcmask.fasta':inputs['.gcmask.fasta'][0],
+                    '.rdmask.bed'     :inputs['.rdmask.bed'][0],
+                    '.interval.list'  :inputs['.interval.list'][0],
                     '.bam':inputs['.bam']}
         #will have to figure out output file name handling
         out_exts = self.split_out_exts()
@@ -91,8 +92,9 @@ class genome_strip(stage_wrapper.Stage_Wrapper):
         print('ploidy file: %s'%ploidy)
         rdmask = in_names['.rdmask.bed']
         print('rdmask file: %s'%rdmask)
-        cnmask = in_names['.gcmask.fasta']
+        cnmask = in_names['.fa.gcmask.fasta']
         print('cnmask file: %s'%cnmask)
+        intervallist = in_names['.interval.list']
         ref  = in_names['.fa']
         
         sub_dir = out_dir+'/'+'S'+str(self.stage_id)+'/'
@@ -104,7 +106,7 @@ class genome_strip(stage_wrapper.Stage_Wrapper):
         with open(bams,'w') as f: f.write(bam_names) #try comma, tab and newline
 
         #[3] gender_map this is for each sample...?
-        #for each sample do a samtools view -SH pull out the RG sample name
+        #pull the bam_stats.cov file and look at the X,Y chrom if they are there...
         gender_map = sub_dir+'/sample_gender.map' #1 is Paternal 2 is Maternal?
         s = ''
         for bam in in_names['.bam']:
