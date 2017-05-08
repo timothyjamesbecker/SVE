@@ -180,7 +180,7 @@ b_start = time.time()
 if len(reads)>0 and len(glob.glob(directory+'/bam/*%s*.bam'%SM))<1:
     output = ''
     bam_directory = directory+'/bam/'
-    print('BAM file not aligned:\nstarting alignment of FASTQ files at location: %s'%bam_directory)
+    print('BAM files not located:\nstarting alignment of FASTQ files at location: %s'%bam_directory)
     if algorithm=='speed_seq': a_cpus,a_threads,a_mem = 1,cpus*threads,cpus*mem
     else:                      a_cpus,a_threads,a_mem = cpus,threads,mem
     prepare_bam = [scripts_path+'prepare_bam.py','-r',ref_fa_path,'-f',','.join(reads),'-o',bam_directory,'-s',SM,
@@ -195,7 +195,7 @@ if len(reads)>0 and len(glob.glob(directory+'/bam/*%s*.bam'%SM))<1:
 else:
     bam_directory = '/'.join(bam.rsplit('/')[:-1])+'/'
     bam_path = bam
-    print('bam files : %s was found, skipping alignment step'%bam)
+    print('BAM files : %s was found, skipping alignment step'%bam)
 b_stop = time.time()
 if os.path.exists(bam_path):
     print('prepare_bam has completed in %s minutes'%round((b_stop-b_start)/60.0,2))

@@ -253,7 +253,8 @@ with svedb.SVEDB(dbc['srv'], dbc['db'], dbc['uid'], dbc['pwd']) as dbo:
                 
             st = stage.Stage('bam_clean',dbc)
             bam_clean_params = st.get_params()
-            bam_clean_params['-t'] = 4 #default threads
+            bam_clean_params['-t']['value'] = 4 #default threads
+            bam_clean_params['-m']['value'] = 8 #default memory
             st.set_params(bam_clean_params)
             outs = st.run(run_id,{'.header':[in_stats[1]],'.valid':[in_stats[4]],
                                   '.bam':bams,'out_dir':[directory]})
@@ -280,8 +281,8 @@ with svedb.SVEDB(dbc['srv'], dbc['db'], dbc['uid'], dbc['pwd']) as dbo:
                 if in_stats[i].endswith('.valid'):  valid  = in_stats[i]
             if len(header)>0 and len(valid)>0: #run bam_clean
                 bam_clean_params = st.get_params()
-                bam_clean_params['-t'] = 4 #default threads
-                bam_clean_params['-m'] = 8 #default memory
+                bam_clean_params['-t']['value'] = 4 #default threads
+                bam_clean_params['-m']['value'] = 8 #default memory
                 st.set_params(bam_clean_params)
                 #print the .valid file for debugging-------
                 print('-------------valid file output-----------------')
@@ -323,6 +324,10 @@ with svedb.SVEDB(dbc['srv'], dbc['db'], dbc['uid'], dbc['pwd']) as dbo:
     if staging.has_key('lumpy'):
         #lumpy    
         st = stage.Stage('lumpy',dbc)
+        lumpy_params = st.get_params()
+        lumpy_params['-m']['value'] = 2
+        lumpy_params['-r']['value'] = 0.0
+        st.set_params(lumpy_params)
         outs = st.run(run_id, {'.bam':bams,'out_dir':[directory]})
         if verbose: print(outs)
 
@@ -380,7 +385,7 @@ with svedb.SVEDB(dbc['srv'], dbc['db'], dbc['uid'], dbc['pwd']) as dbo:
         #cnvnator VC
         st = stage.Stage('cnvnator',dbc)
         cnvnator_params = st.get_params()    #automatically get the depth and length
-        cnvnator_params['window']['value'] = ru.expected_window(depth=RD,length=RL,target=50)
+        cnvnator_params['window']['value'] = ru.expected_window(depth=RD,length=RL,target=100)
         st.set_params(cnvnator_params)
         outs = st.run(run_id, {'.fa':[ref_fa_path],'.bam':bams,'out_dir':[directory]})
         if verbose: print(outs[:min(int(1E3),len(outs))]) #print first 1E3 lines

@@ -47,7 +47,7 @@ class delly(stage_wrapper.Stage_Wrapper):
         excl  = self.software_path+'/delly-0.7.2/excludeTemplates/human.hg19.excl.tsv'#need to match reference
         vcfs  = {'del':sub_dir+'del.vcf','dup':sub_dir+'dup.vcf',
                  'inv':sub_dir+'inv.vcf','tra':sub_dir+'tra.vcf',
-                 'ins': sub_dir + 'ins.vcf'}
+                 'ins':sub_dir+'ins.vcf'}
         q = str(self.get_params()['q']['value'])
         s = str(self.get_params()['s']['value'])
         del_call = [delly,'-t','DEL','-q',q,'-s',s,
@@ -121,7 +121,7 @@ class delly(stage_wrapper.Stage_Wrapper):
             subprocess.check_output(' '.join(vcfmerge), stderr=subprocess.STDOUT,
                                     shell=True,env={'PATH':PATH,'PERL5LIB':PERL})
             #now remove the folder...
-            subprocess.check_output('rm -rf %s'%sub_dir, stderr=subprocess.STDOUT,shell=True)                        
+            #subprocess.check_output('rm -rf %s'%sub_dir, stderr=subprocess.STDOUT,shell=True)                        
         #catch all errors that arise under normal call behavior
         except subprocess.CalledProcessError as E:
             print('call error: '+E.output)        #what you would see in the term

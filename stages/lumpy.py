@@ -46,14 +46,20 @@ class lumpy(stage_wrapper.Stage_Wrapper):
                          '.vcf' :out_dir+cascade+'_S'+str(self.stage_id)+out_exts[1]} 
             
         defaults,params = self.params,[]
-        params = [k+'='+str(defaults[k]['value']) for k in defaults]
-        print(params)
+        params = {k:str(defaults[k]['value']) for k in defaults}
         #[2a]build command args       
         lumpy   = self.software_path+'/lumpy-sv/bin/lumpyexpress'
         vcfsort = self.software_path+'/vcftools_0.1.12b/bin/vcf-sort'
         PERL = self.software_path+'/vcftools_0.1.12b/perl'
         if os.environ.has_key('PERL5LIB'):
             PERL += ':'+os.environ['PERL5LIB']
+        #try to load an exclusion bed file default is in '-x':lumpy.json
+        exclude_path = self.software_path+'/lumpy-sv/'+params['-x']
+        if os.path.exists(exclude_path):
+            params['-x'] = exclude_path
+        else:
+            params.pop('-x')
+        print([k+' '+params[k] for k in params])
         #check for samblaster files and use faster version if possible
         ds = {'s':[],'d':[]}
         for x in in_names['.bam']:
@@ -61,16 +67,21 @@ class lumpy(stage_wrapper.Stage_Wrapper):
             s = [stub+'.discordants.bam',stub+'.splitters.bam']
             if all([os.path.exists(y) for y in s]):
                 ds['d'],ds['s'] = ds['d']+[s[0]],ds['s']+[s[1]]
-        print('searching for discordant and splitter files: %s'%ds)
+        print('searching for discordant and splitter BAM files: %s'%ds)
         if len(in_names['.bam'])==len(ds['d']) and len(ds['d'])==len(ds['s']): #three files per sample
-            sv_call = [lumpy]+\
-                      ['-B']+[','.join(in_names['.bam'])]+\
-                      ['-D']+[','.join(ds['d'])]+\
-                      ['-S']+[','.join(ds['s'])]+\
-                      ['-m 4','-T',out_dir+'temp','-P','-o',out_names['.calls']]
+            sv_call = [lumpy,
+                      '-B',','.join(in_names['.bam']),
+                      '-D',','.join(ds['d']),
+                      '-S',','.join(ds['s']),
+                      ' '.join([k+' '+params[k] for k in params]),#'-P',
+                      '-T',out_dir+'temp',
+                      '-o',out_names['.calls']]
         else: #just one file per dample here-----------------------------------------------------------
-            sv_call = [lumpy,'-B']+ [','.join(in_names['.bam'])]+\
-                      ['-m 4','-T',out_dir+'temp','-P','-o',out_names['.calls']] #more work on params
+            sv_call = [lumpy,
+                       '-B',','.join(in_names['.bam']),
+                       ' '.join([k+' '+params[k] for k in params]),#'-P',
+                       '-T',out_dir+'temp',
+                       '-o',out_names['.calls']] #more work on params
         #sv_fast can do a version that checks for matching .bam, .split.bam and .disc.bam triples (prior samblasted)
         sort_vcf  = [vcfsort,out_names['.calls'],'>',out_names['.vcf']]        
         self.db_start(run_id,in_names['.bam'][0])        
@@ -82,8 +93,8 @@ class lumpy(stage_wrapper.Stage_Wrapper):
             output += subprocess.check_output(' '.join(sort_vcf),
                                               stderr=subprocess.STDOUT,shell=True,
                                               env={'PERL5LIB':PERL})+'\n'
-            #output += subprocess.check_output(' '.join(['rm',out_names['.calls']]),
-            #                                  stderr=subprocess.STDOUT,shell=True)+'\n'
+            output += subprocess.check_output(' '.join(['rm',out_names['.calls']]),
+                                              stderr=subprocess.STDOUT,shell=True)+'\n'
             #catch all errors that arise under normal call behavior
         except subprocess.CalledProcessError as E:
             print('call error: '+E.output)        #what you would see in the term
