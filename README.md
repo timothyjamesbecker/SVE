@@ -1,5 +1,5 @@
 
-##Structural Variation Engine<br>
+<h2>Structural Variation Engine<h2><br>
 (c) 2016-2017 Timothy Becker<br><br>
 A python script based execution engine for SV calling that abstracts separate SV calling pipelines into a stage.
 Each stage has a set of configurations for runtime which is stored as a JSON format parameter map.
