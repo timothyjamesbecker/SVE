@@ -1,6 +1,6 @@
 
-<h2>Structural Variation Engine</h2><br>
-(c) 2016-2017 Timothy Becker<br><br>
+ <h2>Structural Variation Engine </h2> <br>
+(c) 2016-2017 Timothy Becker <br> <br>
 A python script based execution engine for SV calling that abstracts separate SV calling pipelines into a stage.
 Each stage has a set of configurations for runtime which is stored as a JSON format parameter map.
 Each SV caller stage has access to a set of standard inputs as well as reference specific and SV caller
@@ -10,19 +10,20 @@ a VCF formated file for use as input to the FusorSV data fusion and arbitration 
 cloud systems via docker images.  Easily extensible for addition of new SV calling algorithms
 and data sources.  Several common pre and post processing stages are included.<br>
 
-<h2>Requirements</h2> (docker) full SVE
-docker toolbox (or engine) version 1.13.0+<br>
-a full docker image can be obtained by:<br>
+ <h2> Requirements </h2> (docker) full SVE
+docker toolbox (or engine) version 1.13.0+ <br>
+a full docker image can be obtained by: <br>
+
 ```bash
 docker pull timothyjamesbecker/sve
 ```
 
-<h2>Requirements</h2> (non-docker)
-python 2.7.10+, numpy, scipy, subprocess32, paramiko, scp, HTSeq, mysql.connector<br>
+ <h2> Requirements </h2> (non-docker)
+python 2.7.10+, numpy, scipy, subprocess32, paramiko, scp, HTSeq, mysql.connector <br>
 All callers and pre post processing executables will have to be built and tested. See the links provided for each of these.
-An automated bash configuration of the python requirements will setup the python distribution for you, but not individual callers or algorithms.<br>
+An automated bash configuration of the python requirements will setup the python distribution for you, but not individual callers or algorithms. <br>
 
-<h2>Current SV Callers</h2>
+ <h2> Current SV Callers </h2>
 (see each of these links for liscensing information and citations)
 1.  BreakDancer (with VCF converter)<br>https://github.com/genome/breakdancer2.<br>
 2.  BreakSeq2<br>https://github.com/bioinform/breakseq2<br>
@@ -35,15 +36,15 @@ An automated bash configuration of the python requirements will setup the python
 9.  Lumpy-SV<br> https://github.com/arq5x/lumpy-sv<br>
 10. Tigra-SV (and EXT pipeline)<br> https://bitbucket.org/xianfan/tigra<br> https://bitbucket.org/xianfan/tigra-ext<br>
 
-<h2>Planned Future SV Callers</h2>
+ <h2> Planned Future SV Callers </h2>
 1. SVelter<br> https://github.com/mills-lab/svelter<br>
 2. MindTheGap<br> https://gatb.inria.fr/software/mind-the-gap/<br>
 3. TakeABreak<br> https://gatb.inria.fr/software/takeabreak/<br>
 
-<h2>Current Metacalling Methods:</h2>
+ <h2> Current Metacalling Methods: </h2>
 1.  FusorSV (with optional crossmap liftover) <br> https://github.com/timothyjamesbecker/FusorSV<br>
 
-<h2>Current Pre and Post Processing Tools</h2>
+ <h2> Current Pre and Post Processing Tools </h2>
 1.  art_illumina<br> https://www.niehs.nih.gov/research/resources/software/biostatistics/art/<br>
 2.  samtools (also bcftools, tabix, ect)<br> https://github.com/samtools/samtools<br>
 3.  picard_tools<br> https://broadinstitute.github.io/picard/<br>
@@ -57,7 +58,7 @@ An automated bash configuration of the python requirements will setup the python
 11. bam_stats tool (samtools flagstat, coverage by sequence, BAM validation, phred sensing, read-group checking,ect)<br>
 12. bam_clean (broken/problematic BAM file cleaning conditional routines)<br>
 
-<h2>Core Frameworks and Extension</h2>
+ <h2> Core Frameworks and Extension </h2>
 ![Alt text](overview.jpg?raw=true "SVE")<br>
 SVE uses a Object Orientated Design (OOD) pattern to decrease the perceived complexity and configuration of arbitrary pipelines.  The heart of the system invokes the registration of a stage which is extended by inheriting from the stage_wrapper class.  A stage is written by this extension and then its run method must be defined (overloaded).  Execution start by collecting and passing arguments into the run runing stage, but before this occurs the API can be configured with a database that can access frequent information such as reference identifies (using MD5 hashes of the sequence lengths) or other mechanisms.  Each stage has a unique runtimesruntimes identifier that allows the databases or SVEDB to keep track of runtimes for each file which can be used to gather information such as the average runtime for SV calling on a sample ect.  If no DB is configured, the SVE will continue in a autonomous mode (with fewer features).  Once a stage has been loaded at runtime, the name is used to load the configurations and executable paths which includes a stage param_map (JSON file) that passes valuable information such as the window size to use, ect.  Once the run method is invoked, the SVE spawns a new process on the host system and puts in a robust block on the parent SVE script.  Each line is run inside this child process so that the output is fully checked meaning that if the stages fails, the SVE does not and can rerun stages or continue to the next stage in a list ect...An example of this workflow can be seen inside the prepare_bam.py and variant_processor.py scripts which dynamically load stages as needed. Complex pipelines should be written in a way that each part of the pipeline is run and checked before continuing, so that meaningful error messages can be obtained from the resulting standard error stream<br>
 <h2>Usage</h2>
