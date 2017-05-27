@@ -194,6 +194,7 @@ If -D or -L are left out, the bam_stats information gathering stage with determi
 <br>
 
  <h3> (3) Merging Structural Variation Call Sets (Using a default fusion model with FusorSV) </h3> 
+ 
 ```bash
 docker run -v ~/data:/data timothyjamesbecker/sve /software/FusorSV/FusorSV.py\
 -r /data/ref/human_g1k_v37_decoy.fa\
@@ -205,6 +206,7 @@ docker run -v ~/data:/data timothyjamesbecker/sve /software/FusorSV/FusorSV.py\
 -M 0.5\
 -L DEFAULT
 ```
+
  <br>
 -r or --ref is a fasta reference path.  The files should already have indecies produced.<br><br>
 -c or --chroms is an optional chrom list if you only want calls that were made on specific sequences.The default is 1-22,X,Y,MT with auto-sensing of (chr prefix)<br><br>
