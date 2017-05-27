@@ -10,19 +10,19 @@ a VCF formated file for use as input to the FusorSV data fusion and arbitration 
 cloud systems via docker images.  Easily extensible for addition of new SV calling algorithms
 and data sources.  Several common pre and post processing stages are included.<br>
 
-###Requirements (docker) full SVE
+<h2>Requirements</h2> (docker) full SVE
 docker toolbox (or engine) version 1.13.0+<br>
 a full docker image can be obtained by:<br>
 ```bash
 docker pull timothyjamesbecker/sve
 ```
 
-###Requirements (non-docker)
+<h2>Requirements</h2> (non-docker)
 python 2.7.10+, numpy, scipy, subprocess32, paramiko, scp, HTSeq, mysql.connector<br>
 All callers and pre post processing executables will have to be built and tested. See the links provided for each of these.
 An automated bash configuration of the python requirements will setup the python distribution for you, but not individual callers or algorithms.<br>
 
-###Current SV Callers
+<h2>Current SV Callers</h2>
 (see each of these links for liscensing information and citations)
 1.  BreakDancer (with VCF converter)<br>https://github.com/genome/breakdancer2.<br>
 2.  BreakSeq2<br>https://github.com/bioinform/breakseq2<br>
@@ -35,15 +35,15 @@ An automated bash configuration of the python requirements will setup the python
 9.  Lumpy-SV<br> https://github.com/arq5x/lumpy-sv<br>
 10. Tigra-SV (and EXT pipeline)<br> https://bitbucket.org/xianfan/tigra<br> https://bitbucket.org/xianfan/tigra-ext<br>
 
-###Planned Future SV Callers
+<h2>Planned Future SV Callers</h2>
 1. SVelter<br> https://github.com/mills-lab/svelter<br>
 2. MindTheGap<br> https://gatb.inria.fr/software/mind-the-gap/<br>
 3. TakeABreak<br> https://gatb.inria.fr/software/takeabreak/<br>
 
-###Current Metacalling Methods:
+<h2>Current Metacalling Methods:</h2>
 1.  FusorSV (with optional crossmap liftover) <br> https://github.com/timothyjamesbecker/FusorSV<br>
 
-###Current Pre and Post Processing Tools
+<h2>Current Pre and Post Processing Tools</h2>
 1.  art_illumina<br> https://www.niehs.nih.gov/research/resources/software/biostatistics/art/<br>
 2.  samtools (also bcftools, tabix, ect)<br> https://github.com/samtools/samtools<br>
 3.  picard_tools<br> https://broadinstitute.github.io/picard/<br>
@@ -57,26 +57,26 @@ An automated bash configuration of the python requirements will setup the python
 11. bam_stats tool (samtools flagstat, coverage by sequence, BAM validation, phred sensing, read-group checking,ect)<br>
 12. bam_clean (broken/problematic BAM file cleaning conditional routines)<br>
 
-##Core Frameworks and Extension
+<h2>Core Frameworks and Extension</h2>
 ![Alt text](overview.jpg?raw=true "SVE")<br>
 SVE uses a Object Orientated Design (OOD) pattern to decrease the perceived complexity and configuration of arbitrary pipelines.  The heart of the system invokes the registration of a stage which is extended by inheriting from the stage_wrapper class.  A stage is written by this extension and then its run method must be defined (overloaded).  Execution start by collecting and passing arguments into the run runing stage, but before this occurs the API can be configured with a database that can access frequent information such as reference identifies (using MD5 hashes of the sequence lengths) or other mechanisms.  Each stage has a unique runtimesruntimes identifier that allows the databases or SVEDB to keep track of runtimes for each file which can be used to gather information such as the average runtime for SV calling on a sample ect.  If no DB is configured, the SVE will continue in a autonomous mode (with fewer features).  Once a stage has been loaded at runtime, the name is used to load the configurations and executable paths which includes a stage param_map (JSON file) that passes valuable information such as the window size to use, ect.  Once the run method is invoked, the SVE spawns a new process on the host system and puts in a robust block on the parent SVE script.  Each line is run inside this child process so that the output is fully checked meaning that if the stages fails, the SVE does not and can rerun stages or continue to the next stage in a list ect...An example of this workflow can be seen inside the prepare_bam.py and variant_processor.py scripts which dynamically load stages as needed. Complex pipelines should be written in a way that each part of the pipeline is run and checked before continuing, so that meaningful error messages can be obtained from the resulting standard error stream<br>
-##Usage
+<h2>Usage</h2>
 docker usage requires docker toolbox or other docker engine be installed, otherwise all executables should be build and eplaced inside a ...some_path/software/ folder where the SVE scritps should reside at: ...some_path/software/SVE.  Alternatively sym links can be used to redirect the script paths.  Additionally if you are using docker, you can update to the latest SVE scripts and pre-built executables (will just do a file diff and will be much faster than the first pull):
 ```bash
 docker pull timothyjamesbecker/sve
 ```
-##Autonomous Mode
-Several steps are required in order to prepare reference files, indecies, libraries, ancillary files in addition to then aligning FASTQ files to the reference coordinate space followed by running multiple SV calling pipelines and then runing FusorSV merging of the results.  This style of use makes several assumptions and provide a very easy to use analysis that will provide several SV callers worth of data for a FusorSV mergig step that will incorporate a prior fusion model. It is assumed that the docker image is used in this case as many binaires have to be installed and checked for the automous system to run.
+<h2>Autonomous Mode</h2>
+Several steps are required in order to prepare reference files, indecies, libraries, ancillary files in addition to then aligning FASTQ files to the reference coordinate space followed by running multiple SV calling pipelines and then runing FusorSV merging of the results.  This style of use makes several assumptions and provide a very easy to use analysis that will provide several SV callers worth of data for a FusorSV mergig step that will incorporate a prior fusion model. It is assumed that the docker image is used in this case as many binaires have to be installed and checked for the automous system to run correctly.
 ```bash
 docker run -v ~/data:/data -it timothyjamesbecker/sve /software/SVE/scripts/auto.py\
 -r /data/ref/human_g1k_v37_decoy.fa\
 -f -f /data/sample1/sample1_1.fq,/data/sample1/sample1_2.fq\
 -o /data/run_sample1/
 ```
-##Advanced Mode
+<h2>Advanced Mode</h2>
 The advanced use has each step as a seperate script as used by auto.py but has many more options for tuning perfromance and setting directories.  These steps are a good starting place for adapting the SVE to a specific platform like a HPC system or a cloud service, ect.
 
-####(0) Preparing Reference files from a single fasta input
+<h3>(0) Preparing Reference files from a single fasta input</h3>
 A one time step is required that will be skipped for all future runs that indexes and copies/renames all needed inputs files for all the individual pipelines and processes used by the SVE.  These files are checked in the autonomous mode and not regenerated.
 ```bash
 docker run -v ~/data:/data timothyjamesbecker/sve /software/SVE/scripts/prepare_ref.py\
@@ -89,7 +89,7 @@ docker run -v ~/data:/data timothyjamesbecker/sve /software/SVE/scripts/prepare_
 -o output directory (will become the reference directory) where the fasta files, indecies, libraries and anything related to the reference will be located for SVE use.
 -t is a target file mapping parameter that will automatically copy a caller specific reference file into the new reference directory. You can use wild cards and mappmultiple files to a caller.  You must use the SVE caller names for this to work.  As default the current default genome is already in place and will provide proper functionaly.
 
-####(1) Alignment of FASTQ and generation of BAM files
+<h3>(1) Alignment of FASTQ and generation of BAM files</h3>
 The first step is to align FASTQ paired end reads to a reference genome.  The 1000 Genomes phase 3 reference fasta is currently sugested and tested against: http://ftp.1000genomes.ebi.ac.uk/vol1/ftp/technical/reference/human_g1k_v37.fasta.gz  (Hg38 and mm10 are planned)
 ```bash
 docker run -v ~/data:/data timothyjamesbecker/sve /software/SVE/scripts/prepare_bam.py\
@@ -99,9 +99,9 @@ docker run -v ~/data:/data timothyjamesbecker/sve /software/SVE/scripts/prepare_
 -P 4\
 -T 6\
 -M 2\
--a piped_split
+-a speed_seq
 ```
--a or --algorithm selects between the ```bash bwa aln, bwa mem and bwa mem | samtools view -Sb -``` workflows. The default is a high performing || bwa mem variation that also produces the compressed BAM directly and then uses sambamba for duplicate marking: piped_split. -P, -T and -M are used with this pipeline to utilize all processors and all memory of a server or workstation class system. -P 4 -T 6 -M 2 will use up to P*T=24 cores with P*(M+g)=42GB where g is the standard bwa mem memory footprint which scales to the size of the genome used as reference.<br>
+-a or --algorithm selects between the ```bash bwa aln, bwa mem and bwa mem | samtools view -Sb -``` workflows. The default is a speedseq alignment using bwa mem, sambamba and samblaster while an alternate is avaible with high performing || bwa mem variation that also produces the compressed BAM directly and then uses sambamba for duplicate marking: piped_split. -P, -T and -M are used with this pipeline to utilize all processors and all memory of a server or workstation class system. -P 4 -T 6 -M 2 will use up to P*T=24 cores with P*(M+g)=42GB where g is the standard bwa mem memory footprint which scales to the size of the genome used as reference.<br>
 -r or --ref is a fasta reference path.  The files should already have indecies produced.  You can perfrom these steps by using the optional script /software/SVE/scripts/prepare_ref.py described below/<br>
 -f or --fqs is a comma seperated list of the FASTQ files you wish to align and map to the reference FASTA file listed with the -r argument.<br>
 -o or --out_dir is the output directory that you wish to put intermediary files such as the unsorted (by coordinate) BAM files.  If this directory does not exist, a new directory will be generated in the files system and then files will be written to this location.<br>
@@ -110,7 +110,7 @@ docker run -v ~/data:/data timothyjamesbecker/sve /software/SVE/scripts/prepare_
 -M or --mem is the amount of RAM allocated per cpu/thread until, so the upper bound on a human genome is around P*T*M~48GB
 -h or --help provides the latest build options.
 
-####(2) Structural Variation Calling on Bam files and generation of VCF files
+<h3>(2) Structural Variation Calling on Bam files and generation of VCF files</h3>
 ```bash
 docker run -v ~/data:/data timothyjamesbecker/sve /software/SVE/scripts/variant_processor.py\
 -r /data/ref/human_g1k_v37_decoy.fa\
@@ -178,22 +178,22 @@ If -D or -L are left out, the bam_stats information gathering stage with determi
 -c or --chroms will attemp to run SV callers on a subset of the sequences present in the BAM file, effectively skipping alignments that fall on the undesired sequences.<br>
 <br>
 
-####(3) Merging Structural Variation Call Sets (Using a default fusion model with FusorSV)
+<h3>(3) Merging Structural Variation Call Sets (Using a default fusion model with FusorSV)</h3>
 ```bash
 docker run -v ~/data:/data timothyjamesbecker/sve /software/FusorSV/FusorSV.py\
 -r /data/ref/human_g1k_v37_decoy.fa\
 -c 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,X,Y\
 -i /data/vcfs/\
 -o /data/fused/\
--f /software/FusorSV/data/models/human_g1k_v37_decoy.P3.pickle\
--p 4\
+-f /data/models/human_g1k_v37_decoy.P3.pickle.gz\
+-p 2\
 -M 0.5\
--L
+-L DEFAULT
 ```
 <br>
 -r or --ref is a fasta reference path.  The files should already have indecies produced.<br><br>
 -c or --chroms is an optional chrom list if you only want calls that were made on specific sequences.The default is 1-22,X,Y,MT with auto-sensing of (chr prefix)<br><br>
--i or --in_dir takes the VCF directory that was produced from step (2) the variant_processor.py script.  This will auto-append the stag or SV caller name to each samples VCF file in addition to creating a per sample sirectory with all callers inside which will look like this if you had samle1 and sample2 already processed:<br>
+-i or --in_dir takes the VCF directory that was produced from step (2) the variant_processor.py script.  This will auto-append the stage_id (SV caller identifier integer) to each samples VCF file in addition to creating a per sample directory with all callers inside which will look like (assuming sample1 and sample2 are already processed):<br>
 ```bash
 ls /data/vcfs/*/*
 /data/vcfs/sample1/
@@ -236,4 +236,4 @@ ls /data/vcfs/*/*
 -f or --apply_fusion_model_path is used to apply a default model or to apply a new model you have created using the Training commands.  For more information on how to generate new models or update/append into models see the full FusorSV documentation.<br><br>
 -p or --cpus sets the number of processor cores that will be used.  This will increase the amount of RAM but will speed up the processing by p as all major parts of the FusorSV processing are out-of-core and optimally || due to complete independance in the data stream by partitions.<br><br>
 -M or cluster_overlap sets the amount of overlap permitted in the resulting VCF file for all samples attached to the -i argument.  This currently uses a (non-optimal) reciprocal overlap scanning proceedure to join together toaching calls, where the final resulting breakpoints with be averaged across all calls.  Individual VCF files will still remain, but this single master file will provide approximated genotype information with the support f every caller and the expectation under the fusion model giving you a clear an concise file to move forward with the biological relavence of the high-accuracy FusorSV calls.<br>
--L or --lift_over argument is used to pass a valid chain file to the FusorSV machinery to apply crossmap lift over<br>
+-L or --lift_over argument is used to pass a valid chain file to the FusorSV machinery to apply crossmap lift over, DEFAULT will use the current hg19 to HG38 lift over file taken from UCSC<br>
