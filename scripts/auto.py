@@ -230,14 +230,17 @@ for job in jobs:
     if args.verbose: print(result_list)
     result_list,i = [],i+1
 #(D) Run FusorSV to merge the results
-output = ''
-print('starting FusorSV processing with a prior model')
+#look for a S0.vcf file in the directory and if there use it for perfromance testing
+output,model = '',[]
+if len(glob.glob(vcf_directory+'/*_S0.vcf'))<1:
+    print('starting FusorSV processing with a prior model')
+    model += ['-f','DEFAULT']
+else:
+    print('starting FusorSV processing with a truth input to model')
 fusorsv_out = directory+'/fusorsv_out/'
-
-fusor_sv = [scripts_path+'../../FusorSV/FusorSV.py',
+fusor_sv = ['FusorSV.py',
             '-r',ref_fa_path,'-i',vcf_directory,
-            '-f',scripts_path+'../../FusorSV/data/models/human_g1k_v37_decoy.P3.pickle',
-            '-o',fusorsv_out,'-p',str(cpus),'-L','DEFAULT']
+            '-o',fusorsv_out,'-p',str(cpus),'-L','DEFAULT']+model
 try :
     output += subprocess.check_output(' '.join(fusor_sv),shell=True)
 except Exception as E:

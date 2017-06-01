@@ -325,7 +325,7 @@ with svedb.SVEDB(dbc['srv'], dbc['db'], dbc['uid'], dbc['pwd']) as dbo:
         #lumpy    
         st = stage.Stage('lumpy',dbc)
         lumpy_params = st.get_params()
-        lumpy_params['-m']['value'] = 2
+        lumpy_params['-m']['value'] = 4
         lumpy_params['-r']['value'] = 0.0
         st.set_params(lumpy_params)
         outs = st.run(run_id, {'.bam':bams,'out_dir':[directory]})
@@ -385,7 +385,7 @@ with svedb.SVEDB(dbc['srv'], dbc['db'], dbc['uid'], dbc['pwd']) as dbo:
         #cnvnator VC
         st = stage.Stage('cnvnator',dbc)
         cnvnator_params = st.get_params()    #automatically get the depth and length
-        cnvnator_params['window']['value'] = ru.expected_window(depth=RD,length=RL,target=100)
+        cnvnator_params['window']['value'] = ru.expected_window(depth=RD,length=RL,target=50)
         st.set_params(cnvnator_params)
         outs = st.run(run_id, {'.fa':[ref_fa_path],'.bam':bams,'out_dir':[directory]})
         if verbose: print(outs[:min(int(1E3),len(outs))]) #print first 1E3 lines
@@ -424,7 +424,7 @@ with svedb.SVEDB(dbc['srv'], dbc['db'], dbc['uid'], dbc['pwd']) as dbo:
         tigra_params['A']['value'] = 1000  #bp into the breakpoint
         tigra_params['Q']['value'] = 2     #min quality
         tigra_params['P']['value'] = 1000  #max read depth
-        tigra_params['H']['value'] = 200   #max nodes
+        tigra_params['H']['value'] = 500   #max nodes
         st.set_params(tigra_params)
         outs = st.run(run_id,{'.fa':[ref_fa_path],'.bam':bams,
                               '.calls':targets,'.vcf':targets,'out_dir':[directory]})
