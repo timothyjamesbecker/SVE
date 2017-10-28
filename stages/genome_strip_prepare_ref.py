@@ -152,7 +152,7 @@ class genome_strip_prepare_ref(stage_wrapper.Stage_Wrapper):
                 csvwriter.writerow(row)
         #[3] interval list of which chroms to use
         print('writing sequence limititation interval list for genomestrip')
-        interval_list = out_names['interval.list']
+        interval_list = out_names['.interval.list']
         if x_n=='X' and y_n=='Y':         #EBI style
             default_interval = [str(i) for i in range(1,23,1)]+['X','Y']
         elif x_n=='chrX' and y_n=='chrY': #UCSC style
