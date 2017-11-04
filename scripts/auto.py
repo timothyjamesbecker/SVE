@@ -131,7 +131,8 @@ else:
 seqs = set(ru.get_fasta_seq_names_lens(ref_fa_path).keys())
 #[2] glob the reference directory to see if files are present
 ref_prep = True
-for f in ['.fa','.dict','.amb','.ann','.bwt','.pac','.sa','.svmask.fasta']:
+ref_extensions = ['.fa','.amb','.ann','.bwt','.pac','.sa','.svmask.fasta']
+for f in ref_extensions:
     g = set([g.rsplit('/')[-1].replace(f,'').replace('.fa','').rsplit('_S15_')[-1] for g in \
              glob.glob('/'.join((ref_fa_path.rsplit('/')[:-1]))+'/*'+f)])
     if len(seqs.difference(g))>0:
