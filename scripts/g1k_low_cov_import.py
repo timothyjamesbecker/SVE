@@ -26,6 +26,7 @@ else:
     raise IOError
 if args.out_dir is not None:
     out_dir = args.out_dir
+    if not os.path.exists(out_dir): os.makedirs(out_dir)
 else:
     raise IOError
 if args.connections is not None:
