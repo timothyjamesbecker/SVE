@@ -133,7 +133,7 @@ if __name__ == '__main__':
     #start || wget calls
     p1 = mp.Pool(processes=cpus)
     for sample in pick_list: #for each sample calculate all posisble combinations and score them
-        #p1.apply_async(wget, args=(base_url,log_path,sample), callback=collect_results)
+        p1.apply_async(wget, args=(base_url,log_path,sample), callback=collect_results)
         time.sleep(1)
     p1.close()
     p1.join()
