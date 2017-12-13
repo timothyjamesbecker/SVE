@@ -1,9 +1,41 @@
 #!/usr/bin/env python
+import argparse
 import time
 import sys
 import os
+import numpy as np
 import multiprocessing as mp
 import subprocess32 as subprocess
+
+des = """1000 genomes ftp download management script"""
+parser = argparse.ArgumentParser(description=des)
+parser.add_argument('-l', '--ftp_list',type=str, help='path to the tsv ftp download list file\t[None]')
+parser.add_argument('-p', '--pop_list',type=str, help='path to the tsv population list file\t[None]')
+parser.add_argument('-o', '--out_dir',type=str, help='outputdirectory to save ...bam/ into\t[None]')
+parser.add_argument('-c', '--connections',type=int,help='number of connections to use at once\t[1]')
+parser.add_argument('-s', '--num_samples',type=int, help='total number of samples to download\t[1]')
+args = parser.parse_args()
+
+if args.ftp_list is not None:
+    sample_ftp_path = args.ftp_list
+else:
+    raise IOError
+if args.pop_list is not None:
+    sample_list_path = args.pop_list
+else:
+    raise IOError
+if args.out_dir is not None:
+    out_dir = args.out_dir
+else:
+    raise IOError
+if args.connections is not None:
+    cpus = args.connections
+else:
+    cpus = 1
+if args.num_samples is not None:
+    num_samples = args.num_samples
+else:
+    num_samples = 1
 
 #wget from the ftp a specified sample, unless it is already in the download.check file
 def wget(base_url,log_path,sample):
@@ -64,44 +96,44 @@ def collect_results(result):
     results.append(result)  
 
 if __name__ == '__main__':
-    #g1k low covergae downloader tool:
-    cpus = 4 #number of simultaneous downloads
     base_url = 'ftp://ftp.1000genomes.ebi.ac.uk/vol1/ftp/phase3/data/'
-    sample_list_path = os.path.dirname(os.path.abspath(__file__))+'/g1k_sample_list.txt'
-    high_list_path = os.path.dirname(os.path.abspath(__file__))+'/high_cov_sample_list.txt'
-    log_path = os.path.dirname(os.path.abspath(__file__))+'/g1k_download_log'
+    log_path = out_dir
     
     print('using sample_list: %s'%sample_list_path)
-    print('using high_list: %s'%high_list_path)
+    print('using sample ftp: %s'%sample_ftp_path)
     print('writing logs to %s'%log_path)
     print('using %s cpus and wget commands'%cpus)
     
-    raw_list = []
-    high_list = []
+    P,N = {},{}
     with open(sample_list_path,'r') as f:
         sample_list = f.readlines()
-    with open(high_list_path,'r') as f:
-        high_list = f.readlines()
-    raw_list = [s.replace('\n','') for s in sample_list]
-    high_list = [s.replace('\n','') for s in high_list]
-    
-    #take out the 27 samples and pick another 27*4 = 27*5 = 135 samples saving to a new file list
-    #deterministic selection based on alphabetical ordering
-    sample_list = []
-    for sample in raw_list:
-        if sample not in high_list:
-            sample_list += [sample]
+    sample_list = [s.replace('\n','').split('\t') for s in sample_list]
+    with open(sample_ftp_path, 'r') as f:
+        sample_ftp = f.readlines()
+    sample_ftp = [s.replace('\n','') for s in sample_ftp]
+
+    for sample in sample_list:
+        if sample[0] in sample_ftp:
+            if P.has_key(sample[1]):
+                P[sample[1]] += [sample[0]]
+            else:
+                P[sample[1]]  = [sample[0]]
+        else:
+            if N.has_key(sample[1]):
+                N[sample[1]] += [sample[0]]
+            else:
+                N[sample[1]]  = [sample[0]]
+
+    #------------------------------------------------------
     pick_list = []
-    for i in range(0,len(sample_list),len(sample_list)/108):
-        pick_list += [sample_list[i]]
-    pick_list = high_list+pick_list
-    
-    #pick_list = pick_list[0:4] #debug
-    
+    for i in range(num_samples):
+        pop    = np.random.choice(P.keys())
+        pick_list += [np.random.choice(P[pop])]
+
     #start || wget calls
     p1 = mp.Pool(processes=cpus)
     for sample in pick_list: #for each sample calculate all posisble combinations and score them
-        p1.apply_async(wget, args=(base_url,log_path,sample), callback=collect_results)
+        #p1.apply_async(wget, args=(base_url,log_path,sample), callback=collect_results)
         time.sleep(1)
     p1.close()
     p1.join()
@@ -111,4 +143,3 @@ if __name__ == '__main__':
         if not i.startswith('error on sample'): L += [i]
         else: print(i)
     print('%s samples were successfully downloaded'%len(L))
-
