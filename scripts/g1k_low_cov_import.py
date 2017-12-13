@@ -43,6 +43,7 @@ def wget(base_url,log_path,sample):
         output,err = '',''
         #[1]unmapped index
         url = base_url+'/%s/alignment/%s.unmapped*.bam.bai'%(sample,sample)
+        print(url)
         command = ['cd','/'.join(log_path.rsplit('/')[0:-1])+'/','&&','wget','-c',url]
         try:
             output += subprocess.check_output(' '.join(command), stderr=subprocess.STDOUT, shell=True)
@@ -52,6 +53,7 @@ def wget(base_url,log_path,sample):
         
         #[2]unmapped bam
         url = base_url+'/%s/alignment/%s.unmapped*.bam'%(sample,sample)
+        print(url)
         command = ['cd','/'.join(log_path.rsplit('/')[0:-1])+'/','&&','wget','-c',url]
         try:
             output += subprocess.check_output(' '.join(command), stderr=subprocess.STDOUT, shell=True)
@@ -60,6 +62,7 @@ def wget(base_url,log_path,sample):
             pass
         
         url = base_url+'/%s/alignment/%s.mapped*.bam.bai'%(sample,sample)
+        print(url)
         command = ['cd','/'.join(log_path.rsplit('/')[0:-1])+'/','&&','wget','-c',url]
         #[3]mapped index
         try:
@@ -69,6 +72,7 @@ def wget(base_url,log_path,sample):
             pass
         
         url = base_url+'/%s/alignment/%s.mapped*.bam'%(sample,sample)
+        print(url)
         command = ['cd','/'.join(log_path.rsplit('/')[0:-1])+'/','&&','wget','-c',url]
         #[4]mapped bam
         try:
