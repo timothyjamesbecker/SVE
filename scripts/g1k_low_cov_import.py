@@ -134,15 +134,15 @@ if __name__ == '__main__':
     pick_list = list(np.random.choice(list(set([y for k in P for y in P[k]])),num_samples,replace=False))
 
     #start || wget calls
-    # p1 = mp.Pool(processes=cpus)
-    # for sample in pick_list: #for each sample download both mapped and unmapped patterns
-    #     p1.apply_async(wget, args=(base_url,log_path,sample), callback=collect_results)
-    #     time.sleep(1)
-    # p1.close()
-    # p1.join()
-    #
-    # L = []
-    # for i in results:
-    #     if not i.startswith('error on sample'): L += [i]
-    #     else: print(i)
-    # print('%s samples were successfully downloaded'%len(L))
+    p1 = mp.Pool(processes=cpus)
+    for sample in pick_list: #for each sample download both mapped and unmapped patterns
+        p1.apply_async(wget, args=(base_url,log_path,sample), callback=collect_results)
+        time.sleep(1)
+    p1.close()
+    p1.join()
+
+    L = []
+    for i in results:
+        if not i.startswith('error on sample'): L += [i]
+        else: print(i)
+    print('%s samples were successfully downloaded'%len(L))
