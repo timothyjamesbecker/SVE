@@ -13,7 +13,7 @@ parser.add_argument('-l', '--ftp_list',type=str, help='path to the tsv ftp downl
 parser.add_argument('-p', '--pop_list',type=str, help='path to the tsv population list file\t[None]')
 parser.add_argument('-o', '--out_dir',type=str, help='outputdirectory to save ...bam/ into\t[None]')
 parser.add_argument('-c', '--connections',type=int,help='number of connections to use at once\t[1]')
-parser.add_argument('-s', '--num_samples',type=int, help='total number of samples to download\t[1]')
+parser.add_argument('-s', '--num_samples',type=str, help='total number of samples to download\t[1]')
 args = parser.parse_args()
 
 if args.ftp_list is not None:
@@ -33,8 +33,29 @@ if args.connections is not None:
     cpus = args.connections
 else:
     cpus = 1
-if args.num_samples is not None:
-    num_samples = args.num_samples
+if args.num_samples is not None and args.num_samples.upper() != 'ALL':
+    num_samples = int(args.num_samples)
+elif args.num_samples.upper()=='ALL':
+    sample_list,sample_ftp = [],[]
+    with open(sample_list_path,'r') as f:
+        sample_list = f.readlines()
+    sample_list = [s.replace('\n','').split('\t') for s in sample_list]
+    with open(sample_ftp_path, 'r') as f:
+        sample_ftp = f.readlines()
+    sample_ftp = [s.replace('\n','') for s in sample_ftp]
+    P,N = {},{}
+    for sample in sample_list:
+        if sample[0] in sample_ftp:
+            if P.has_key(sample[1]):
+                P[sample[1]] += [sample[0]]
+            else:
+                P[sample[1]]  = [sample[0]]
+        else:
+            if N.has_key(sample[1]):
+                N[sample[1]] += [sample[0]]
+            else:
+                N[sample[1]]  = [sample[0]]
+    num_samples = sum([len(P[k]) for k in P])
 else:
     num_samples = 1
 
@@ -110,6 +131,8 @@ if __name__ == '__main__':
     print('using %s cpus and wget commands'%cpus)
     
     P,N = {},{}
+    if sample_list != []: sample_list = []
+    if sample_ftp  != []: sample_ftp  = []
     with open(sample_list_path,'r') as f:
         sample_list = f.readlines()
     sample_list = [s.replace('\n','').split('\t') for s in sample_list]
@@ -131,13 +154,13 @@ if __name__ == '__main__':
 
     #------------------------------------------------------
     pops = list(np.random.choice(P.keys(),num_samples,replace=True))
-    pick_list = list(np.random.choice(list(set([y for k in P for y in P[k]])),num_samples,replace=False))
+    # pick_list = list(np.random.choice(list(set([y for k in P for y in P[k]])),num_samples,replace=False))
 
     #start || wget calls
     p1 = mp.Pool(processes=cpus)
-    for sample in pick_list: #for each sample download both mapped and unmapped patterns
-        p1.apply_async(wget, args=(base_url,log_path,sample), callback=collect_results)
-        time.sleep(1)
+    # for sample in pick_list: #for each sample download both mapped and unmapped patterns
+    #     p1.apply_async(wget, args=(base_url,log_path,sample), callback=collect_results)
+    #     time.sleep(1)
     p1.close()
     p1.join()
 
