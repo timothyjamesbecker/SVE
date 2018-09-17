@@ -158,9 +158,9 @@ if __name__ == '__main__':
 
     #start || wget calls
     p1 = mp.Pool(processes=cpus)
-    # for sample in pick_list: #for each sample download both mapped and unmapped patterns
-    #     p1.apply_async(wget, args=(base_url,log_path,sample), callback=collect_results)
-    #     time.sleep(1)
+    for sample in pick_list: #for each sample download both mapped and unmapped patterns
+        p1.apply_async(wget, args=(base_url,log_path,sample), callback=collect_results)
+        time.sleep(1)
     p1.close()
     p1.join()
 
