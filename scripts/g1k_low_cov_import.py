@@ -92,7 +92,7 @@ def wget(base_url,log_path,sample):
                 f.write(output)
             return output
         else:
-            with open(log_path+'_'+sample,'w') as f:
+            with open(log_path+'_err_'+sample,'w') as f:
                 f.write(err)
             return 'error on sample %s'%sample
 
@@ -130,21 +130,19 @@ if __name__ == '__main__':
                 N[sample[1]]  = [sample[0]]
 
     #------------------------------------------------------
-    pick_list = []
-    for i in range(num_samples):
-        pop    = np.random.choice(P.keys())
-        pick_list += [np.random.choice(P[pop])]
+    pops = list(np.random.choice(P.keys(),num_samples,replace=True))
+    pick_list = list(np.random.choice(list(set([y for k in P for y in P[k]])),num_samples,replace=False))
 
     #start || wget calls
-    p1 = mp.Pool(processes=cpus)
-    for sample in pick_list: #for each sample calculate all posisble combinations and score them
-        p1.apply_async(wget, args=(base_url,log_path,sample), callback=collect_results)
-        time.sleep(1)
-    p1.close()
-    p1.join()
-    
-    L = []
-    for i in results:
-        if not i.startswith('error on sample'): L += [i]
-        else: print(i)
-    print('%s samples were successfully downloaded'%len(L))
+    # p1 = mp.Pool(processes=cpus)
+    # for sample in pick_list: #for each sample download both mapped and unmapped patterns
+    #     p1.apply_async(wget, args=(base_url,log_path,sample), callback=collect_results)
+    #     time.sleep(1)
+    # p1.close()
+    # p1.join()
+    #
+    # L = []
+    # for i in results:
+    #     if not i.startswith('error on sample'): L += [i]
+    #     else: print(i)
+    # print('%s samples were successfully downloaded'%len(L))
