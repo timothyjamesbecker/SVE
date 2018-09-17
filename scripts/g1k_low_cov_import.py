@@ -154,7 +154,7 @@ if __name__ == '__main__':
 
     #------------------------------------------------------
     pops = list(np.random.choice(P.keys(),num_samples,replace=True))
-    # pick_list = list(np.random.choice(list(set([y for k in P for y in P[k]])),num_samples,replace=False))
+    pick_list = list(np.random.choice(list(set([y for k in P for y in P[k]])),num_samples,replace=False))
 
     #start || wget calls
     p1 = mp.Pool(processes=cpus)
