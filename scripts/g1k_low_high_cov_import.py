@@ -118,7 +118,7 @@ def wget(base_url,log_path,sample,high=False):
                 pass
 
             #[2]unmapped bam
-                url=base_url+'/%s/high_coverage_alignment/%s.*_pcr_free*.bam'%(sample,sample)
+            url=base_url+'/%s/high_coverage_alignment/%s.*_pcr_free*.bam'%(sample,sample)
             print(url)
             command=['cd','/'.join(log_path.rsplit('/')[0:-1])+'/','&&','wget','-c',url]
             try:
