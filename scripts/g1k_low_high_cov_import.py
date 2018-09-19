@@ -14,6 +14,7 @@ parser.add_argument('-p', '--pop_list',type=str, help='path to the tsv populatio
 parser.add_argument('-o', '--out_dir',type=str, help='outputdirectory to save ...bam/ into\t[None]')
 parser.add_argument('-c', '--connections',type=int,help='number of connections to use at once\t[1]')
 parser.add_argument('-s', '--num_samples',type=str, help='total number of samples to download\t[1]')
+parser.add_argument('--high_cov',action='store_true', help='get the high coverage data\t[False]')
 args = parser.parse_args()
 
 if args.ftp_list is not None:
@@ -60,49 +61,72 @@ else:
     num_samples = 1
 
 #wget from the ftp a specified sample, unless it is already in the download.check file
-def wget(base_url,log_path,sample):
-        print('starting sample %s'%sample)
-        output,err = '',''
-        #[1]unmapped index
-        url = base_url+'/%s/alignment/%s.unmapped*.bam.bai'%(sample,sample)
-        print(url)
-        command = ['cd','/'.join(log_path.rsplit('/')[0:-1])+'/','&&','wget','-c',url]
-        try:
-            output += subprocess.check_output(' '.join(command), stderr=subprocess.STDOUT, shell=True)
-        except Exception:
-            err += '\t'.join(command)+'\n'
-            pass
-        
-        #[2]unmapped bam
-        url = base_url+'/%s/alignment/%s.unmapped*.bam'%(sample,sample)
-        print(url)
-        command = ['cd','/'.join(log_path.rsplit('/')[0:-1])+'/','&&','wget','-c',url]
-        try:
-            output += subprocess.check_output(' '.join(command), stderr=subprocess.STDOUT, shell=True)
-        except Exception:
-            err += '\t'.join(command)+'\n'
-            pass
-        
-        url = base_url+'/%s/alignment/%s.mapped*.bam.bai'%(sample,sample)
-        print(url)
-        command = ['cd','/'.join(log_path.rsplit('/')[0:-1])+'/','&&','wget','-c',url]
-        #[3]mapped index
-        try:
-            output += subprocess.check_output(' '.join(command), stderr=subprocess.STDOUT, shell=True)
-        except Exception:
-            err += '\t'.join(command)+'\n'
-            pass
-        
-        url = base_url+'/%s/alignment/%s.mapped*.bam'%(sample,sample)
-        print(url)
-        command = ['cd','/'.join(log_path.rsplit('/')[0:-1])+'/','&&','wget','-c',url]
-        #[4]mapped bam
-        try:
-            output += subprocess.check_output(' '.join(command), stderr=subprocess.STDOUT, shell=True)
-        except Exception:
-            err += '\t'.join(command)+'\n'
-            pass
-        
+def wget(base_url,log_path,sample,high=False):
+        if not high:
+            print('starting sample %s'%sample)
+            output,err = '',''
+            #[1]unmapped index
+            url = base_url+'/%s/alignment/%s.unmapped*.bam.bai'%(sample,sample)
+            print(url)
+            command = ['cd','/'.join(log_path.rsplit('/')[0:-1])+'/','&&','wget','-c',url]
+            try:
+                output += subprocess.check_output(' '.join(command), stderr=subprocess.STDOUT, shell=True)
+            except Exception:
+                err += '\t'.join(command)+'\n'
+                pass
+
+            #[2]unmapped bam
+            url = base_url+'/%s/alignment/%s.unmapped*.bam'%(sample,sample)
+            print(url)
+            command = ['cd','/'.join(log_path.rsplit('/')[0:-1])+'/','&&','wget','-c',url]
+            try:
+                output += subprocess.check_output(' '.join(command), stderr=subprocess.STDOUT, shell=True)
+            except Exception:
+                err += '\t'.join(command)+'\n'
+                pass
+
+            url = base_url+'/%s/alignment/%s.mapped*.bam.bai'%(sample,sample)
+            print(url)
+            command = ['cd','/'.join(log_path.rsplit('/')[0:-1])+'/','&&','wget','-c',url]
+            #[3]mapped index
+            try:
+                output += subprocess.check_output(' '.join(command), stderr=subprocess.STDOUT, shell=True)
+            except Exception:
+                err += '\t'.join(command)+'\n'
+                pass
+
+            url = base_url+'/%s/alignment/%s.mapped*.bam'%(sample,sample)
+            print(url)
+            command = ['cd','/'.join(log_path.rsplit('/')[0:-1])+'/','&&','wget','-c',url]
+            #[4]mapped bam
+            try:
+                output += subprocess.check_output(' '.join(command), stderr=subprocess.STDOUT, shell=True)
+            except Exception:
+                err += '\t'.join(command)+'\n'
+                pass
+        else:
+            print('starting sample %s'%sample)
+            output,err='',''
+            #[1]unmapped index
+            url=base_url+'/%s/high_coverage_alignment/%s.*_pcr_free*.bam.bai'%(sample,sample)
+            print(url)
+            command=['cd','/'.join(log_path.rsplit('/')[0:-1])+'/','&&','wget','-c',url]
+            try:
+                output+=subprocess.check_output(' '.join(command),stderr=subprocess.STDOUT,shell=True)
+            except Exception:
+                err+='\t'.join(command)+'\n'
+                pass
+
+            #[2]unmapped bam
+                url=base_url+'/%s/high_coverage_alignment/%s.*_pcr_free*.bam'%(sample,sample)
+            print(url)
+            command=['cd','/'.join(log_path.rsplit('/')[0:-1])+'/','&&','wget','-c',url]
+            try:
+                output+=subprocess.check_output(' '.join(command),stderr=subprocess.STDOUT,shell=True)
+            except Exception:
+                err+='\t'.join(command)+'\n'
+                pass
+
             
         print('output:\n'+output)
         #[3a]execute the command here----------------------------------------------------
@@ -155,11 +179,10 @@ if __name__ == '__main__':
     #------------------------------------------------------
     pops = list(np.random.choice(P.keys(),num_samples,replace=True))
     pick_list = list(np.random.choice(list(set([y for k in P for y in P[k]])),num_samples,replace=False))
-
     #start || wget calls
     p1 = mp.Pool(processes=cpus)
     for sample in pick_list: #for each sample download both mapped and unmapped patterns
-        p1.apply_async(wget, args=(base_url,log_path,sample), callback=collect_results)
+        p1.apply_async(wget, args=(base_url,log_path,sample,args.high_cov), callback=collect_results)
         time.sleep(1)
     p1.close()
     p1.join()
