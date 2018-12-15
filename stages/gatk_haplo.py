@@ -4,6 +4,7 @@ import subprocess32 as subprocess
 sys.path.append('../') #go up one in the modules
 import stage_wrapper
 
+
 #function for auto-making svedb stage entries and returning the stage_id
 class gatk_haplo(stage_wrapper.Stage_Wrapper):
     #path will be where a node should process the data using the in_ext, out_ext
@@ -42,12 +43,13 @@ class gatk_haplo(stage_wrapper.Stage_Wrapper):
         #[2a]build command args
         java = self.software_path+'/jre1.8.0_25/bin/java'
         gatk = self.software_path+'/GATK_3.6/GenomeAnalysisTK.jar'
-        mem,threads = self.params['-Xmx']['value'],self.params['-nt']['value']
+        mem,threads,chroms = self.params['-Xmx']['value'],self.params['-nt']['value'],self.params['-L']['value']
         nt   = max(1,len(in_names['.bam']))
         nct  = max(1,int(round(1.0*threads/nt,0)))
         command = [java,'-Xmx%sg'%mem,'-jar',gatk,'-T','HaplotypeCaller',
                    '-nt %s'%nt,'-nct %s'%nct,
-                   '-R',in_names['.fa'],'-I'] + in_names['.bam'] 
+                   '-R',in_names['.fa'],'-I'] + in_names['.bam']
+        if chroms != '': command += ['-L',chroms]
         command += ['-o',out_names['.vcf']]
         #[2b]make start entry which is a new staged_run row
         self.command = command

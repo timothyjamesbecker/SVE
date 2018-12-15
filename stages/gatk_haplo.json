@@ -2,12 +2,13 @@
     "stage_id":13,
     "type":"variant caller",
     "name":"gatk_haplo",
-    "version":"3.3",
+    "version":"3.6",
     "wrapper":"gatk_haplo",
     "in_ext":".fa,.bam",
     "out_ext":".vcf,.vcf.idx",
     "param_map":{"-stand_call_conf":{"type":"int","min":30,"max":100,"steps":20},
                  "-stand_emit_conf":{"type":"int","min":10,"max":100,"steps":40},
                  "-nt":{"type":"int","min":4,"max":16,"steps":12},
-                 "-Xmx":{"type":"int","min":4,"max":48,"steps":44}}
+                 "-Xmx":{"type":"int","min":4,"max":48,"steps":44},
+                 "-L":{"type":"string","min":"","max":"","steps":""}}
 }

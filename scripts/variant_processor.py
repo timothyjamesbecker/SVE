@@ -409,8 +409,10 @@ with svedb.SVEDB(dbc['srv'], dbc['db'], dbc['uid'], dbc['pwd']) as dbo:
         #use chroms to generate an interval list to limit analysis
         st = stage.Stage('gatk_haplo',dbc)
         gatk_params = st.get_params()
-        gatk_params['-nt']['value']  = 12 #threads
-        gatk_params['-Xmx']['value'] = 24 #mem GB
+        gatk_params['-nt']['value']  = 8 #threads
+        gatk_params['-Xmx']['value'] = 16 #mem GB
+        gatk_params['-L']['value'] = ','.join(chroms)
+        st.set_params(gatk_params)
         outs = st.run(run_id,{'.fa':[ref_fa_path],'.bam':bams,'out_dir':[directory]})
         if verbose: print(outs)
         #gatk VairantReCalibration using dbsnp, known:Hapmap, 1Kgenomes, etc...
