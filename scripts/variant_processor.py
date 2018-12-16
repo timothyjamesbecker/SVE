@@ -34,7 +34,8 @@ parser.add_argument('-L', '--read_length',type=int, help='Read Length')
 parser.add_argument('-t', '--targets',type=str, help='target region files for input: vcf,bd,1gk formats')
 parser.add_argument('-s','--stages',type=str, help='stage name list')
 parser.add_argument('-c','--chroms',type=str, help='chrom name list')
-parser.add_argument('-p','--partitions',type=int, help='number of partitions or ||L')
+parser.add_argument('-P','--cpus',type=int, help='number of threads or cpus')
+parser.add_argument('-M','--mem',type=int,help='mem in GB')
 parser.add_argument('--debug',action='store_true',help='save result/error data to db')
 parser.add_argument('-d','--database',type=str, help='database configuration file')
 parser.add_argument('-e','--erase_db',action='store_true',help='reset and clear the schema bound db')
@@ -173,10 +174,15 @@ else:
         print('missing chrom and reference')
         raise AttributeError
 
-if args.partitions is not None:
-    partitions = args.partitions
+if args.cpus is not None:
+    cpus = args.cpus
 else:
-    partitions = 1
+    cpus = 1
+
+if args.mem is not None:
+    mem = args.mem
+else:
+    mem = 4
 
 if args.verbose is not None:
     verbose = True
@@ -253,8 +259,8 @@ with svedb.SVEDB(dbc['srv'], dbc['db'], dbc['uid'], dbc['pwd']) as dbo:
                 
             st = stage.Stage('bam_clean',dbc)
             bam_clean_params = st.get_params()
-            bam_clean_params['-t']['value'] = 4 #default threads
-            bam_clean_params['-m']['value'] = 8 #default memory
+            bam_clean_params['-t']['value'] = cpus #default threads
+            bam_clean_params['-m']['value'] = mem #default memory
             st.set_params(bam_clean_params)
             outs = st.run(run_id,{'.header':[in_stats[1]],'.valid':[in_stats[4]],
                                   '.bam':bams,'out_dir':[directory]})
@@ -281,8 +287,8 @@ with svedb.SVEDB(dbc['srv'], dbc['db'], dbc['uid'], dbc['pwd']) as dbo:
                 if in_stats[i].endswith('.valid'):  valid  = in_stats[i]
             if len(header)>0 and len(valid)>0: #run bam_clean
                 bam_clean_params = st.get_params()
-                bam_clean_params['-t']['value'] = 4 #default threads
-                bam_clean_params['-m']['value'] = 8 #default memory
+                bam_clean_params['-t']['value'] = cpus #default threads
+                bam_clean_params['-m']['value'] = mem #default memory
                 st.set_params(bam_clean_params)
                 #print the .valid file for debugging-------
                 print('-------------valid file output-----------------')
@@ -409,8 +415,8 @@ with svedb.SVEDB(dbc['srv'], dbc['db'], dbc['uid'], dbc['pwd']) as dbo:
         #use chroms to generate an interval list to limit analysis
         st = stage.Stage('gatk_haplo',dbc)
         gatk_params = st.get_params()
-        gatk_params['-nt']['value']  = 8 #threads
-        gatk_params['-Xmx']['value'] = 16 #mem GB
+        gatk_params['-nt']['value']  = cpus #threads
+        gatk_params['-Xmx']['value'] = mem #mem GB
         gatk_params['-L']['value'] = ','.join(chroms)
         st.set_params(gatk_params)
         outs = st.run(run_id,{'.fa':[ref_fa_path],'.bam':bams,'out_dir':[directory]})
