@@ -49,7 +49,7 @@ class gatk_haplo(stage_wrapper.Stage_Wrapper):
         command = [java,'-Xmx%sg'%mem,'-jar',gatk,'-T','HaplotypeCaller',
                    '-nt %s'%nt,'-nct %s'%nct,
                    '-R',in_names['.fa'],'-I'] + in_names['.bam']
-        if chroms != '': command += ['-L',chroms]
+        if chroms != '': command += [' '.join(['-L %s'%c for c in chroms.split(',')])]
         command += ['-o',out_names['.vcf']]
         #[2b]make start entry which is a new staged_run row
         self.command = command
