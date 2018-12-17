@@ -107,8 +107,7 @@ else:
     print('missing value for caller stage_id list')
     print('availble stages are:\n------------------------------\n%s\n' % '\n'.join(sorted(sids.keys())))
     print('runing default stage_id list')
-    default_stages = ['breakdancer','breakseq','cnvnator','hydra',
-                      'delly','lumpy','genome_strip','gatk_haplo']
+    default_stages = ['breakdancer','breakseq','cnvnator','hydra','delly','lumpy']
     staging = {c:sids for c in default_stages}
 
 if args.out_dir is not None:    #optional reroute
@@ -347,9 +346,9 @@ with svedb.SVEDB(dbc['srv'], dbc['db'], dbc['uid'], dbc['pwd']) as dbo:
             cnmops_params['mode']['value']   = 1
         else:
             cnmops_params['mode']['value']   = 0
-        cnmops_params['normal']['value'] = 3      #poisson normalization
-        cnmops_params['cir_seg']['value'] = True
-        cnmops_params['cores']['value']  = 1      #bibc threads
+        cnmops_params['normal']['value']     = 3      #poisson normalization
+        cnmops_params['cir_seg']['value']    = True
+        cnmops_params['cores']['value']      = 1      #threads, best at one
         st.set_params(cnmops_params)
         outs = st.run(run_id, {'.fa':[ref_fa_path],'.bam':bams,'out_dir':[directory]})    
         if verbose: print(outs)
@@ -363,9 +362,6 @@ with svedb.SVEDB(dbc['srv'], dbc['db'], dbc['uid'], dbc['pwd']) as dbo:
     if staging.has_key('breakdancer'):
         #breakdancer
         st = stage.Stage('breakdancer',dbc)
-#        bd_params = st.get_params()
-#        bd_params['-l']['value'] = True
-#        st.set_params(bd_params)
         outs = st.run(run_id, {'.fa':[ref_fa_path],'.bam':bams,'out_dir':[directory]})
         if verbose: print(outs)    
 
@@ -417,7 +413,7 @@ with svedb.SVEDB(dbc['srv'], dbc['db'], dbc['uid'], dbc['pwd']) as dbo:
         gatk_params = st.get_params()
         gatk_params['-nt']['value']  = cpus #threads
         gatk_params['-Xmx']['value'] = mem #mem GB
-        gatk_params['-L']['value'] = ','.join(chroms)
+        gatk_params['-L']['value']   = ','.join(chroms)
         st.set_params(gatk_params)
         outs = st.run(run_id,{'.fa':[ref_fa_path],'.bam':bams,'out_dir':[directory]})
         if verbose: print(outs)
@@ -428,10 +424,10 @@ with svedb.SVEDB(dbc['srv'], dbc['db'], dbc['uid'], dbc['pwd']) as dbo:
         tigra_params = st.get_params()     #automatically get the depth and length
         tigra_params['p']['value'] = 1     #cpus for sorting, leave at 1  
         tigra_params['F']['value'] = 0     #bedIntersect flanking bp
-        tigra_params['L']['value'] = 1000  #bp away from the breakpoint
-        tigra_params['A']['value'] = 1000  #bp into the breakpoint
+        tigra_params['L']['value'] = 4*RL  #bp away from the breakpoint
+        tigra_params['A']['value'] = 4*RL  #bp into the breakpoint
         tigra_params['Q']['value'] = 2     #min quality
-        tigra_params['P']['value'] = 1000  #max read depth
+        tigra_params['P']['value'] = RD*20 #max read depth
         tigra_params['H']['value'] = 500   #max nodes
         st.set_params(tigra_params)
         outs = st.run(run_id,{'.fa':[ref_fa_path],'.bam':bams,
