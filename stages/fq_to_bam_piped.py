@@ -19,7 +19,15 @@ class fq_to_bam_piped(stage_wrapper.Stage_Wrapper):
 
     def __exit__(self, type, value, traceback):
         return 0  
-    
+
+    def get_records(self,m,t):
+        r = 250000*16
+        try:
+            r = int((int(m)*250000)/int(t))
+        except Exception as E:
+            pass
+        return r
+
     #override this function in each wrapper...
     #bwa sampe ref.fa L.sai R.sai L.fq R.fq -f out.sam
     def run(self,run_id,inputs):
@@ -55,73 +63,131 @@ class fq_to_bam_piped(stage_wrapper.Stage_Wrapper):
         threads = str(self.get_params()['-t']['value'])
         bwa = self.software_path+'/bwa-master/bwa' #latest release
         samtools = self.software_path+'/samtools-1.3/samtools'
-        java   = self.software_path+'/jre1.8.0_51/bin/java'
-        mem    = '-Xmx%sg'%str(self.get_params()['-m']['value'])
-        picard = self.software_path+'/picard-tools-2.5.0/picard.jar' #latest release here
+        sambamba = self.software_path+'/sambamba/sambamba'
         sample = stripped_name+'RG'
+
         #'@RG\tID:H7AGF.2\tLB:Solexa-206008\tPL:illumina\tPU:H7AGFADXX131213.2\tSM:HG00096\tCN:BI'
         RG = r'\t'.join(["'@RG",'ID:'+sample,'LB:'+'Solexa'+sample,'PL:'+inputs['platform_id'][0],
                          'PU:'+sample,'SM:'+SM+"'"])
         bwa_mem = [bwa,'mem','-M','-t',threads,'-R',RG,in_names['.fa']]+in_names['.fq']+['|']
-        view = [samtools,'view','-Sb','-','>',out_name+'.bam']
-        
-#        sort = [samtools,'sort','-m','2G','-@',threads,'-T',out_dir+stripped_name+'_sort_',
-#                '-O','bam',out_name+'.bam','>',out_name+'.sorted.bam']
-                
-        sort   =  [java,mem,'-jar',picard,'SortSam','I='+out_name+'.bam',
-                   'O=',out_name+'.sorted.bam','SORT_ORDER=coordinate',
-                   'TMP_DIR='+out_dir+'/sort/','MAX_RECORDS_IN_RAM='+str(250000*16),
-                   'VALIDATION_STRINGENCY=LENIENT','COMPRESSION_LEVEL=5']
-                
-        mark   =  [java,mem,'-jar',picard,'MarkDuplicates','I='+out_name+'.sorted.bam',
-                   'O='+out_name+'.bam','METRICS_FILE='+out_name+'.picard.metrics.txt',
-                   'MAX_RECORDS_IN_RAM='+str(250000*16)] #delete .sorted.bam after this steps
-        index  = [java,mem,'-jar',picard,'BuildBamIndex','I='+out_name+'.bam',
-                  'O='+out_name+'.bam.bai']  #no .bam.bai here ?     
-        clean = ['rm','-rf',out_name+'.sorted.bam',out_name+'.picard.metrics.txt',
-                 out_dir+'/sort'] #clean just the sorted bam file when done
-        #[2b]make start entry which is a new staged_run row
-        #[1a]make start entry which is a new staged_run row  
+        view = [samtools,'view','-Shb','-','>',out_name+'.bam']
+        sort   =  [sambamba,'sort','-l','9','-m',str(self.get_params()['-m']['value'])+'GB',
+                   '-t',threads,'-o',out_name+'.sorted.bam','--tmpdir=%s'%out_dir+'/sort', out_name+'.bam']
+        mark   =  [sambamba,'markdup','-l','9','-t',threads,'--tmpdir=%s'%out_dir+'/mark',
+                   out_name+'.sorted.bam',out_name+'.mark.bam']
+        clean = ['rm','-rf',out_dir+'/sort',out_dir+'/mark']
+
         self.command = bwa_mem+view
         print(self.get_command_str())
         self.db_start(run_id,in_names['.fq'][0])
-        
-        #[3a]execute the command here----------------------------------------------------
+        #[3a]execute the commands here----------------------------------------------------
         output,err = '',{}
+        bam_size = 0
         try:
-            if not os.path.exists(out_name+'.bam'):
+            if not os.path.exists(out_name+'.bam') or os.path.size(out_name+'.bam') <= 4096:
                 output += subprocess.check_output(' '.join(bwa_mem+view),stderr=subprocess.STDOUT,shell=True)
-            if not os.path.exists(out_name+'.bam.bai'):
-                if not os.path.exists(out_name+'.sorted.bam'):
-                    output += subprocess.check_output(' '.join(sort),stderr=subprocess.STDOUT,shell=True)
-                output += subprocess.check_output(' '.join(mark),stderr=subprocess.STDOUT,shell=True)
-                output += subprocess.check_output(' '.join(clean),stderr=subprocess.STDOUT,shell=True)
-                output += subprocess.check_output(' '.join(index),stderr=subprocess.STDOUT,shell=True)
-            if not os.path.exists(out_name+'.bam.bai'):
-                output += subprocess.check_output(' '.join(index),stderr=subprocess.STDOUT,shell=True) #clean up the inputs now
-        #catch all errors that arise under normal call behavior
+            bam_size = os.path.size(out_name+'.bam')
         except subprocess.CalledProcessError as E:
-            print('call error: '+E.output)        #what you would see in the term
+            print('call error: '+E.output)
             err['output'] = E.output
-            #the python exception issues (shouldn't have any...
-            print('message: '+E.message)          #?? empty
+            print('message: '+E.message)
             err['message'] = E.message
-            #return codes used for failure....
-            print('code: '+str(E.returncode))     #return 1 for a fail in art?
+            print('code: '+str(E.returncode))
             err['code'] = E.returncode
         except OSError as E:
-            print('os error: '+E.strerror)        #what you would see in the term
+            print('os error: '+E.strerror)
             err['output'] = E.strerror
-            #the python exception issues (shouldn't have any...
-            print('message: '+E.message)          #?? empty
+            print('message: '+E.message)
             err['message'] = E.message
-            #the error num
             print('code: '+str(E.errno))
             err['code'] = E.errno
         except Exception as E:
             print(E)
         print('output:\n'+output)
-        
+
+        sorted_size = 0 #sorting step
+        try:
+            if not os.path.exists(out_name + '.bam.bai') :
+                if not os.path.exists(out_name + '.sorted.bam'):
+                    output += subprocess.check_output(' '.join(sort), stderr=subprocess.STDOUT, shell=True)
+                elif os.path.size(out_name + '.sorted.bam') <= bam_size/2.0:
+                    output += subprocess.check_output(' '.join(['rm',out_name+'.sorted.bam']),
+                                                      stderr=subprocess.STDOUT, shell=True)
+                    output += subprocess.check_output(' '.join(sort), stderr=subprocess.STDOUT, shell=True)
+            sorted_size = os.path.size(out_name+'.sorted.bam')
+        except subprocess.CalledProcessError as E:
+            print('call error: ' + E.output)
+            err['output'] = E.output
+            print('message: ' + E.message)
+            err['message'] = E.message
+            print('code: ' + str(E.returncode))
+            err['code'] = E.returncode
+        except OSError as E:
+            print('os error: ' + E.strerror)
+            err['output'] = E.strerror
+            print('message: ' + E.message)
+            err['message'] = E.message
+            print('code: ' + str(E.errno))
+            err['code'] = E.errno
+        except Exception as E:
+            print(E)
+        print('output:\n' + output
+
+        mark_size = 0
+        try:
+            if os.path.exists(out_name+'.sorted.bam') and sorted_size > bam_size/2.0:
+                output += subprocess.check_output(' '.join(['rm',out_name+'.bam']),
+                                                  stderr=subprocess.STDOUT,shell=True)
+                output += subprocess.check_output(' '.join(mark),stderr=subprocess.STDOUT,shell=True)
+            mark_size = os.path.size(out_name+'.mark.bam')
+        except subprocess.CalledProcessError as E:
+            print('call error: ' + E.output)
+            err['output'] = E.output
+            print('message: ' + E.message)
+            err['message'] = E.message
+            print('code: ' + str(E.returncode))
+            err['code'] = E.returncode
+        except OSError as E:
+            print('os error: ' + E.strerror)
+            err['output'] = E.strerror
+            print('message: ' + E.message)
+            err['message'] = E.message
+            print('code: ' + str(E.errno))
+            err['code'] = E.errno
+        except Exception as E:
+            print(E)
+        print('output:\n' + output)
+
+        final_size = 0
+        try:
+            if os.path.exists(out_name+'.mark.bam') and mark_size > bam_size/2.0:
+                output += subprocess.check_output(' '.join(['rm',out_name+'.sorted.bam']),
+                                                  stderr=subprocess.STDOUT,shell=True)
+                output += subprocess.check_output(' '.join(['mv',out_name+'.mark.bam',out_name+'.bam']),
+                                                  stderr=subprocess.STDOUT,shell=True)
+                if os.path.exists(out_name+'.bam.bai'):
+                    output += subprocess.check_output(' '.join(['mv',out_name+'.mark.bam.bai',out_name+'.bam.bai']),
+                                                      stderr=subprocess.STDOUT,shell=True)
+                output += subprocess.check_output(' '.join(clean), stderr=subprocess.STDOUT,shell=True)
+            final_size = os.path.size(out_name+'.bam')
+        except subprocess.CalledProcessError as E:
+            print('call error: ' + E.output)
+            err['output'] = E.output
+            print('message: ' + E.message)
+            err['message'] = E.message
+            print('code: ' + str(E.returncode))
+            err['code'] = E.returncode
+        except OSError as E:
+            print('os error: ' + E.strerror)
+            err['output'] = E.strerror
+            print('message: ' + E.message)
+            err['message'] = E.message
+            print('code: ' + str(E.errno))
+            err['code'] = E.errno
+        except Exception as E:
+            print(E)
+        print('output:\n' + output)
+
         #[3b]check results--------------------------------------------------
         if err == {}:
             self.db_stop(run_id,{'output':output},'',True)
