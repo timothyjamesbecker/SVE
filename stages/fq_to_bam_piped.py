@@ -86,7 +86,7 @@ class fq_to_bam_piped(stage_wrapper.Stage_Wrapper):
         try:
             if not os.path.exists(out_name+'.bam') or os.path.getsize(out_name+'.bam') <= 4096:
                 output += subprocess.check_output(' '.join(bwa_mem+view),stderr=subprocess.STDOUT,shell=True)
-            bam_size = os.path.size(out_name+'.bam')
+            bam_size = os.path.getsize(out_name+'.bam')
         except subprocess.CalledProcessError as E:
             print('call error: '+E.output)
             err['output'] = E.output
