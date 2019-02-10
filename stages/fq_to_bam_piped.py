@@ -84,7 +84,7 @@ class fq_to_bam_piped(stage_wrapper.Stage_Wrapper):
         output,err = '',{}
         bam_size = 0
         try:
-            if not os.path.exists(out_name+'.bam') or os.path.size(out_name+'.bam') <= 4096:
+            if not os.path.exists(out_name+'.bam') or os.path.getsize(out_name+'.bam') <= 4096:
                 output += subprocess.check_output(' '.join(bwa_mem+view),stderr=subprocess.STDOUT,shell=True)
             bam_size = os.path.size(out_name+'.bam')
         except subprocess.CalledProcessError as E:
@@ -110,11 +110,11 @@ class fq_to_bam_piped(stage_wrapper.Stage_Wrapper):
             if not os.path.exists(out_name + '.bam.bai') :
                 if not os.path.exists(out_name + '.sorted.bam'):
                     output += subprocess.check_output(' '.join(sort), stderr=subprocess.STDOUT, shell=True)
-                elif os.path.size(out_name + '.sorted.bam') <= bam_size/2.0:
+                elif os.path.getsize(out_name + '.sorted.bam') <= bam_size/2.0:
                     output += subprocess.check_output(' '.join(['rm',out_name+'.sorted.bam']),
                                                       stderr=subprocess.STDOUT, shell=True)
                     output += subprocess.check_output(' '.join(sort), stderr=subprocess.STDOUT, shell=True)
-            sorted_size = os.path.size(out_name+'.sorted.bam')
+            sorted_size = os.path.getsize(out_name+'.sorted.bam')
         except subprocess.CalledProcessError as E:
             print('call error: ' + E.output)
             err['output'] = E.output
@@ -139,7 +139,7 @@ class fq_to_bam_piped(stage_wrapper.Stage_Wrapper):
                 output += subprocess.check_output(' '.join(['rm',out_name+'.bam']),
                                                   stderr=subprocess.STDOUT,shell=True)
                 output += subprocess.check_output(' '.join(mark),stderr=subprocess.STDOUT,shell=True)
-            mark_size = os.path.size(out_name+'.mark.bam')
+            mark_size = os.path.getsize(out_name+'.mark.bam')
         except subprocess.CalledProcessError as E:
             print('call error: ' + E.output)
             err['output'] = E.output
@@ -169,7 +169,7 @@ class fq_to_bam_piped(stage_wrapper.Stage_Wrapper):
                     output += subprocess.check_output(' '.join(['mv',out_name+'.mark.bam.bai',out_name+'.bam.bai']),
                                                       stderr=subprocess.STDOUT,shell=True)
                 output += subprocess.check_output(' '.join(clean), stderr=subprocess.STDOUT,shell=True)
-            final_size = os.path.size(out_name+'.bam')
+            final_size = os.path.getsize(out_name+'.bam')
         except subprocess.CalledProcessError as E:
             print('call error: ' + E.output)
             err['output'] = E.output
