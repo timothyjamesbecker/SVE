@@ -131,7 +131,7 @@ class fq_to_bam_piped(stage_wrapper.Stage_Wrapper):
             err['code'] = E.errno
         except Exception as E:
             print(E)
-        print('output:\n' + output
+        print('output:\n' + output)
 
         mark_size = 0
         try:
