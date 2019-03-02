@@ -62,6 +62,7 @@ class fq_to_bam_piped(stage_wrapper.Stage_Wrapper):
         #if not os.path.exists(out_dir+'/sort/'): os.makedirs(out_dir+'/sort/')
         threads = str(self.get_params()['-t']['value'])
         bwa = self.software_path+'/bwa-master/bwa' #latest release
+        minimap = self.software_path+'/minimap2/minimap2'
         samtools = self.software_path+'/samtools-1.3/samtools'
         sambamba = self.software_path+'/sambamba/sambamba'
         sample = stripped_name+'RG'
@@ -70,6 +71,7 @@ class fq_to_bam_piped(stage_wrapper.Stage_Wrapper):
         RG = r'\t'.join(["'@RG",'ID:'+sample,'LB:'+'Solexa'+sample,'PL:'+inputs['platform_id'][0],
                          'PU:'+sample,'SM:'+SM+"'"])
         bwa_mem = [bwa,'mem','-M','-t',threads,'-R',RG,in_names['.fa']]+in_names['.fq']+['|']
+        minimap = [minimap,'-ax sr','-Y','-t',threads,'-R',RG,in_names['.fa']]+in_names['.fq']+['|']
         view = [samtools,'view','-Shb','-','>',out_name+'.bam']
         sort   =  [sambamba,'sort','-l','9','-m',str(self.get_params()['-m']['value'])+'GB',
                    '-t',threads,'-o',out_name+'.sorted.bam','--tmpdir=%s'%out_dir+'/sort', out_name+'.bam']
