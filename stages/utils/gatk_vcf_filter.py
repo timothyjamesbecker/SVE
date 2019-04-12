@@ -38,6 +38,8 @@ args = parser.parse_args()
 #now glob this on a folder
 lower,upper = args.lower,args.upper
 gatk_paths = glob.glob(args.sample_dir+'/*/*S13.vcf') #weak pattern to glob onto...
+if len(gatk_paths) < 1:
+    gatk_paths = glob.glob(args.sample_dir+'/*S13.vcf')  # weak pattern to glob onto...
 out_dir = args.out_dir
 if not os.path.exists(out_dir): os.makedirs(out_dir)
 for gatk_path in gatk_paths:
