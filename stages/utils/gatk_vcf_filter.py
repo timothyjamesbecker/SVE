@@ -40,13 +40,24 @@ lower,upper = args.lower,args.upper
 gatk_paths = glob.glob(args.sample_dir+'/*/*S13.vcf') #weak pattern to glob onto...
 if len(gatk_paths) < 1:
     gatk_paths = glob.glob(args.sample_dir+'/*S13.vcf')  # weak pattern to glob onto...
-out_dir = args.out_dir
-if not os.path.exists(out_dir): os.makedirs(out_dir)
-for gatk_path in gatk_paths:
-    sname = gatk_path.rsplit('/')[-2]
-    file_name = gatk_path.rsplit('/')[-1]
-    dir_path = gatk_path.replace(file_name,'')
-    print('GATK filtering sample %s'%sname)
-    header,raw = read_gatk_vcf(gatk_path)
-    data = filter_by_sv_len(raw,lower,upper)
-    write_filtered_vcf(header,data,out_dir+'/'+sname+'_'+str(lower)+'bp_'+str(upper)+'bp')
+    out_dir = args.out_dir
+    if not os.path.exists(out_dir): os.makedirs(out_dir)
+    for gatk_path in gatk_paths:
+        sname = gatk_path.rsplit('/')[-1].rsplit('_S13.vcf')[0]
+        file_name = gatk_path.rsplit('/')[-1]
+        dir_path = gatk_path.replace(file_name, '')
+        print('GATK filtering sample %s' % sname)
+        header, raw = read_gatk_vcf(gatk_path)
+        data = filter_by_sv_len(raw, lower, upper)
+        write_filtered_vcf(header, data, out_dir + '/' + sname + '_' + str(lower) + 'bp_' + str(upper) + 'bp')
+else:
+    out_dir = args.out_dir
+    if not os.path.exists(out_dir): os.makedirs(out_dir)
+    for gatk_path in gatk_paths:
+        sname = gatk_path.rsplit('/')[-2]
+        file_name = gatk_path.rsplit('/')[-1]
+        dir_path = gatk_path.replace(file_name, '')
+        print('GATK filtering sample %s' % sname)
+        header, raw = read_gatk_vcf(gatk_path)
+        data = filter_by_sv_len(raw, lower, upper)
+        write_filtered_vcf(header, data, out_dir + '/' + sname + '_' + str(lower) + 'bp_' + str(upper) + 'bp')
